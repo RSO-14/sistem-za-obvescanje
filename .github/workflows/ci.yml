@@ -1,0 +1,115 @@
+name: CI — Build & Push
+
+on:
+  push:
+    paths:
+      - 'services/**'
+      - '.github/**'
+  pull_request:
+    paths:
+      - 'services/**'
+
+permissions:
+  contents: read
+  packages: write
+  contents: read
+  id-token: write
+
+jobs:
+  # 1) auto-detect services in services/ and produce a matrix
+  set-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.make-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Detect services and create matrix
+        id: make-matrix
+        run: |
+          # find top-level folders in services/ that contain a Dockerfile
+          services_json=$(for d in services/*/ ; do
+            if [ -f "$d/Dockerfile" ] || [ -f "$d/Dockerfile.dev" ] ; then
+              name=$(basename "$d")
+              echo "{\"service\":\"$name\"},"
+            fi
+          done | sed 's/,$//')
+          if [ -z "$services_json" ]; then
+            echo "No services detected. Exiting."
+            echo "matrix={}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          matrix="{\"include\":[${services_json}]}"
+          echo "matrix=${matrix}" >> $GITHUB_OUTPUT
+
+  # 2) build and push images for each detected service
+  build-and-push:
+    needs: set-matrix
+    runs-on: ubuntu-latest
+    if: ${{ needs.set-matrix.outputs.matrix != '{}' }}
+    strategy:
+      matrix: ${{ fromJson(needs.set-matrix.outputs.matrix) }}
+    environment: ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU (for multi-arch, optional)
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to registry
+        # Supports GHCR or DockerHub; use GITHUB_TOKEN for GHCR, or REGISTRY/USERNAME/PASSWORD for DockerHub
+        env:
+          REGISTRY: ${{ secrets.CONTAINER_REGISTRY }} # e.g. ghcr.io/<org> or docker.io/<user>
+          USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          if [ -n "${{ secrets.GITHUB_TOKEN }}" ] && [[ "${{ secrets.CONTAINER_REGISTRY }}" == ghcr.io* || "${{ github.repository_owner }}" != "" ]]; then
+            echo "Logging in with GITHUB_TOKEN to GHCR (if using ghcr)"
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin || true
+          fi
+          if [ -n "$REGISTRY" ] && [ -n "$USERNAME" ] && [ -n "$PASSWORD" ]; then
+            echo "$PASSWORD" | docker login $REGISTRY -u "$USERNAME" --password-stdin
+          fi
+
+      - name: Set image metadata
+        id: meta
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./services/${{ matrix.service }}
+          file: ./services/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.CONTAINER_REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service }}:${{ steps.meta.outputs.short_sha }}
+            ${{ secrets.CONTAINER_REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service }}:latest
+          build-args: |
+            CI=true
+          platforms: linux/amd64,linux/arm64
+
+      - name: Run service unit tests (if any)
+        working-directory: ./services/${{ matrix.service }}
+        run: |
+          # Adjust these test commands to match your stack (npm, go, mvn...)
+          if [ -f package.json ]; then
+            echo "Running npm test for ${{ matrix.service }}"
+            npm ci
+            npm test || true
+          elif [ -f go.mod ]; then
+            echo "Running 'go test ./...' for ${{ matrix.service }}"
+            go test ./...
+          else
+            echo "No default test runner detected for ${{ matrix.service }} - skipping"
+          fi

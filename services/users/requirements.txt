@@ -1,0 +1,6 @@
+pymongo
+strawberry-graphql
+fastapi
+uvicorn
+bcrypt
+pyjwt
