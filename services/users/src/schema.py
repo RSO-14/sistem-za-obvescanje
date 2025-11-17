@@ -16,9 +16,65 @@ class Query:
                 id=str(user_data["_id"]),
                 username=user_data["username"],
                 email=user_data["email"],
+                address=user_data.get("address", ""),
+                region=user_data["region"],
+                phone_number=user_data.get("phone_number", ""),
+                role=user_data["role"],
                 created_at=user_data["created_at"]
             )
         return None
+
+    @strawberry.field
+    def users_by_region(self, region: str) -> list[User]:
+        users_data = users_collection.find({"region": region})
+        return [
+            User(
+                id=str(user["_id"]),
+                username=user["username"],
+                email=user["email"],
+                address=user.get("address", ""),
+                region=user["region"],
+                phone_number=user.get("phone_number", ""),
+                role=user["role"],
+                created_at=user["created_at"]
+            )
+            for user in users_data
+        ]
+
+    @strawberry.field
+    def users_by_address(self, address: str) -> list[User]:
+        users_data = users_collection.find({"address": address})
+        return [
+            User(
+                id=str(user["_id"]),
+                username=user["username"],
+                email=user["email"],
+                address=user.get("address", ""),
+                region=user["region"],
+                phone_number=user.get("phone_number", ""),
+                role=user["role"],
+                created_at=user["created_at"]
+            )
+            for user in users_data
+        ]
+
+    @strawberry.field
+    def users_by_role(self, role: str) -> list[User]:
+        users_data = users_collection.find({"role": role})
+        return [
+            User(
+                id=str(user["_id"]),
+                username=user["username"],
+                email=user["email"],
+                address=user.get("address", ""),
+                region=user["region"],
+                phone_number=user.get("phone_number", ""),
+                role=user["role"],
+                created_at=user["created_at"]
+            )
+            for user in users_data
+        ]
+
 
 
 @strawberry.type
@@ -34,6 +90,10 @@ class Mutation:
             "username": input.username,
             "email": input.email,
             "password": hash_password(input.password),
+            "address": input.address,
+            "region": input.region,
+            "phone_number": input.phone_number,
+            "role": input.role,
             "created_at": datetime.utcnow().isoformat()
         }
         users_collection.insert_one(user_doc)
@@ -43,6 +103,10 @@ class Mutation:
             id=user_id,
             username=input.username,
             email=input.email,
+            address=input.address or "",
+            region=input.region,
+            phone_number=input.phone_number or "",
+            role=input.role,
             created_at=user_doc["created_at"]
         )
         return AuthResponse(token=token, user=user)

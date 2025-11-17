@@ -19,6 +19,9 @@ spec:
           image: users:local
           ports:
             - containerPort: 8000
+          env:
+            - name: MONGO_URI
+              value: "mongodb://mongo:27017/usersdb"
           readinessProbe:
             httpGet:
               path: /
