@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: arso-sync
+spec:
+  schedule: "*/15 * * * *"
+  jobTemplate:
+      spec:
+        template:
+          metadata:
+            labels:
+              app: arso-sync
+          spec:
+            containers:
+            - name: arso-sync
+              image: arso-sync:local
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: DB_HOST
+                  value: "postgres"
+                - name: DB_PORT
+                  value: "5432"
+                - name: DB_NAME
+                  value: "arso"
+                - name: DB_USER
+                  value: "arso_user"
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secret
+                      key: POSTGRES_PASSWORD
+            restartPolicy: OnFailure
