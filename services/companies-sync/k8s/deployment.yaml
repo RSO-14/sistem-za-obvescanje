@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: companies-api
+  labels:
+    app: companies-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: companies-api
+  template:
+    metadata:
+      labels:
+        app: companies-api
+    spec:
+      containers:
+        - name: companies-api
+          image: companies-api:local
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DB_HOST
+              value: "postgres-companies"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "companies"
+            - name: DB_USER
+              value: "companies_user"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10

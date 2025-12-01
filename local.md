@@ -15,7 +15,7 @@ Greš v mapo od mikrostoritve (primer za users (./sistem-za-obvescanje/services/
 docker build -t users:local .
 kind load docker-image users:local --name dev-cluster
 kubectl apply -f k8s/
-kubectl get pods, svc -o wide
+kubectl get pods,svc -o wide
 ```
 Če ti kaže da je running in 1/1 potem je vse ok.
 Za lokalni dostop do servisa:

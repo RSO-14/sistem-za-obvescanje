@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-companies
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-companies
+  template:
+    metadata:
+      labels:
+        app: postgres-companies
+    spec:
+      containers:
+        - name: postgres-companies
+          image: postgres-companies:17
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "companies"
+            - name: POSTGRES_USER
+              value: "companies_user"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: postgres-companies-data
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "companies_user", "-h", "localhost"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "companies_user", "-h", "localhost"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: postgres-companies-data
+          persistentVolumeClaim:
+            claimName: postgres-companies-pvc
