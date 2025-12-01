@@ -22,6 +22,17 @@
       "expires": "2025-12-03T20:00:00Z",
       "severity": "moderate",
       "urgency": "immediate"
+    },
+    {
+      "type": "gozdarstvo",
+      "area": "Koroška",
+      "headline": "Nevarna ledena ujma",
+      "description": "V več delih regije so drevesa poledenela in obstaja nevarnost lomljenja vej.",
+      "instruction": "Delo naj se izvaja izključno s profesionalno zaščitno opremo.",
+      "effective": "2025-12-01T05:00:00Z",
+      "expires": "2025-12-02T23:59:00Z",
+      "severity": "high",
+      "urgency": "immediate"
     }
   ]
 }

@@ -85,13 +85,8 @@ def insert_or_update_event(event: dict):
                 instruction, effective, expires, severity, urgency
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (organization_id, type, area, headline)
-            DO UPDATE SET
-                severity = EXCLUDED.severity,
-                effective = EXCLUDED.effective,
-                description = EXCLUDED.description,
-                instruction = EXCLUDED.instruction,
-                expires = EXCLUDED.expires,
-                urgency = EXCLUDED.urgency;
+            DO NOTHING
+            RETURNING id;
         """, (
             int(event["organization_id"]),
             event["type"],
@@ -104,15 +99,45 @@ def insert_or_update_event(event: dict):
             event.get("severity"),
             event.get("urgency")
         ))
+
+        inserted_row = cursor.fetchone()
+
+        if inserted_row:
+            conn.commit()
+            return True
+
+        cursor.execute("""
+            UPDATE organization_events
+            SET severity = %s,
+                effective = %s,
+                description = %s,
+                instruction = %s,
+                expires = %s,
+                urgency = %s
+            WHERE organization_id = %s AND type = %s AND area = %s AND headline = %s;
+        """, (
+            event.get("severity"),
+            event.get("effective"),
+            event.get("description"),
+            event.get("instruction"),
+            event.get("expires"),
+            event.get("urgency"),
+            int(event["organization_id"]),
+            event["type"],
+            event["area"],
+            event["headline"]
+        ))
+
         conn.commit()
+        return False
+
     except Exception as e:
         conn.rollback()
         print(f"Error inserting/updating event: {e}")
+        return False
     finally:
         cursor.close()
         conn.close()
-
-
 
 def get_organization_id_by_name(org_name: str):
     conn = get_connection()

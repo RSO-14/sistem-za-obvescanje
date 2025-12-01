@@ -1,0 +1,16 @@
+{
+  "organization_name": "Regijski center za obveščanje",
+  "events": [
+    {
+      "type": "intervencije",
+      "area": "Dolenjska",
+      "headline": "Požar v stanovanjskem objektu – aktivirani gasilci",
+      "description": "112 je prejel obvestilo o požaru v stanovanjski hiši v občini Novo mesto. Na kraj so bile napotene prostovoljne in poklicne gasilske enote.",
+      "instruction": "Gasilci naj na terenu zagotovijo varnost in preprečijo širjenje požara na sosednje objekte. Komunikacija z RCO obvezna.",
+      "effective": "2025-12-01T05:15:00Z",
+      "expires": "2025-12-01T10:00:00Z",
+      "severity": "high",
+      "urgency": "immediate"
+    }
+  ]
+}

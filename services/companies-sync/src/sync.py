@@ -2,6 +2,7 @@ import os
 import json
 from db import get_organization_id_by_name, insert_or_update_event, insert_organization, create_tables
 import glob
+from publisher import publish_event
 
 def main():
     data_folder = os.path.join(os.path.dirname(__file__), "mock-data")
@@ -33,8 +34,12 @@ def main():
 
             for event in events:
                 event["organization_id"] = org_id
-                insert_or_update_event(event)
-                print(f"Dogodek '{event.get('headline')}' dodan/posodobljen.")
+                is_new = insert_or_update_event(event)
+                if is_new:
+                    print(f"Nov dogodek → publishing to RabbitMQ: {event['headline']}")
+                    publish_event(event)
+                else:
+                    print(f"Posodobljen dogodek (no publish): {event['headline']}")
 
 if __name__ == "__main__":
     create_tables()
