@@ -33,6 +33,13 @@ spec:
                 secretKeyRef:
                   name: postgres-secret
                   key: POSTGRES_PASSWORD
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_EXCHANGE
+              value: "events"
+            - name: RABBITMQ_ROUTING_KEY
+              value: "companies"
+              
           livenessProbe:
             httpGet:
               path: /health

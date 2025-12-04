@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 import strawberry
 
@@ -8,7 +8,8 @@ class User:
     username: str
     email: str
     address: str
-    region: str
+    region: List[str]
+    alerts: List[List[str]]
     phone_number: str
     role: str
     created_at: str
@@ -19,10 +20,10 @@ class UserInput:
     email: str
     password: str
     address: Optional[str] = None
-    region: str
+    region: Optional[List[str]] = None
+    alerts: Optional[List[List[str]]] = None
     phone_number: Optional[str] = None
     role: str
-
 
 @strawberry.input
 class LoginInput:

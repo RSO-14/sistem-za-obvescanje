@@ -39,7 +39,8 @@ mutation {
     email: "john@example.com"
     password: "securePassword123"
     address: "123 Main Street"
-    region: "California"
+    region: ["California"]
+    alerts: [["California", "high", "moderate"]]
     phoneNumber: "555-1234"
     role: "customer"
   }) {
@@ -50,6 +51,7 @@ mutation {
       email
       address
       region
+      alerts
       phoneNumber
       role
       createdAt
@@ -67,6 +69,7 @@ query {
     email
     address
     region
+    alerts
     phoneNumber
     role
     createdAt

@@ -1,5 +1,5 @@
 import strawberry
-from typing import Optional
+from typing import Optional, List
 from .models import User, UserInput, LoginInput, AuthResponse
 from .db import users_collection
 from .auth import hash_password, verify_password, create_token
@@ -16,9 +16,10 @@ class Query:
                 id=str(user_data["_id"]),
                 username=user_data["username"],
                 email=user_data["email"],
-                address=user_data.get("address", ""),
-                region=user_data["region"],
-                phone_number=user_data.get("phone_number", ""),
+                address=user_data.get("address") or "",
+                region=user_data.get("region") or [],
+                alerts=user_data.get("alerts") or [],
+                phone_number=user_data.get("phone_number") or "",
                 role=user_data["role"],
                 created_at=user_data["created_at"]
             )
@@ -26,20 +27,52 @@ class Query:
 
     @strawberry.field
     def users_by_region(self, region: str) -> list[User]:
-        users_data = users_collection.find({"region": region})
+        users_data = users_collection.find({"region": {"$in": [region]}})
         return [
             User(
                 id=str(user["_id"]),
                 username=user["username"],
                 email=user["email"],
-                address=user.get("address", ""),
-                region=user["region"],
-                phone_number=user.get("phone_number", ""),
+                address=user.get("address") or "",
+                region=user.get("region") or [],
+                alerts=user.get("alerts") or [],
+                phone_number=user.get("phone_number") or "",
                 role=user["role"],
                 created_at=user["created_at"]
             )
             for user in users_data
         ]
+
+    @strawberry.field
+    def users_by_alert(self, region: str, level: str) -> List[User]:
+        users_cursor = users_collection.find({
+            "alerts": {"$exists": True, "$ne": None}
+        })
+
+        matched_users = []
+        for user in users_cursor:
+            alerts = user.get("alerts") or []  # List[List[str]]
+
+            for alert_list in alerts:
+                if region in alert_list and level in alert_list:
+                    matched_users.append(user)
+                    break
+
+        return [
+            User(
+                id=str(user["_id"]),
+                username=user["username"],
+                email=user["email"],
+                address=user.get("address") or "",
+                region=user.get("region") or [],
+                alerts=user.get("alerts") or [],
+                phone_number=user.get("phone_number") or "",
+                role=user["role"],
+                created_at=user["created_at"],
+            )
+            for user in matched_users
+        ]
+
 
     @strawberry.field
     def users_by_address(self, address: str) -> list[User]:
@@ -49,9 +82,10 @@ class Query:
                 id=str(user["_id"]),
                 username=user["username"],
                 email=user["email"],
-                address=user.get("address", ""),
-                region=user["region"],
-                phone_number=user.get("phone_number", ""),
+                address=user.get("address") or "",
+                region=user.get("region") or [],
+                alerts=user.get("alerts") or [],
+                phone_number=user.get("phone_number") or "",
                 role=user["role"],
                 created_at=user["created_at"]
             )
@@ -66,16 +100,15 @@ class Query:
                 id=str(user["_id"]),
                 username=user["username"],
                 email=user["email"],
-                address=user.get("address", ""),
-                region=user["region"],
-                phone_number=user.get("phone_number", ""),
+                address=user.get("address") or "",
+                region=user.get("region") or [],
+                alerts=user.get("alerts") or [],
+                phone_number=user.get("phone_number") or "",
                 role=user["role"],
                 created_at=user["created_at"]
             )
             for user in users_data
         ]
-
-
 
 @strawberry.type
 class Mutation:
@@ -91,7 +124,8 @@ class Mutation:
             "email": input.email,
             "password": hash_password(input.password),
             "address": input.address,
-            "region": input.region,
+            "region": input.region or [],
+            "alerts": input.alerts or [], 
             "phone_number": input.phone_number,
             "role": input.role,
             "created_at": datetime.utcnow().isoformat()
@@ -104,7 +138,8 @@ class Mutation:
             username=input.username,
             email=input.email,
             address=input.address or "",
-            region=input.region,
+            region=input.region or [],
+            alerts=input.alerts or [], 
             phone_number=input.phone_number or "",
             role=input.role,
             created_at=user_doc["created_at"]

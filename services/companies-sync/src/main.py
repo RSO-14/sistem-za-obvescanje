@@ -69,6 +69,7 @@ def api_receive_events(payload: dict):
 
     for event in events:
         event["organization_id"] = org_id
+        event["organization_name"] = org_name
         status = insert_or_update_event(event)
 
         if status in ("inserted", "updated"):
