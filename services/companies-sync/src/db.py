@@ -1,6 +1,7 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
+from dateutil import parser
 
 DATABASE_CONFIG = {
     'host': os.getenv('DB_HOST'),
@@ -61,12 +62,13 @@ def insert_organization(org_name: str):
     cursor = conn.cursor()
     print("done connecting")
     print(org_name)
+    clean_name = " ".join(org_name.split())
     try:
         cursor.execute("""
             INSERT INTO organizations (organization_name)
             VALUES (%s)
             ON CONFLICT (organization_name) DO NOTHING;
-        """, (org_name,))
+        """, (clean_name,))
         conn.commit()
     except Exception as e:
         conn.rollback()
@@ -75,10 +77,34 @@ def insert_organization(org_name: str):
         cursor.close()
         conn.close()
 
+def norm_datetime(value):
+    if value in (None, "", " "):
+        return None
+    if isinstance(value, str):
+        return parser.parse(value)
+    return value
+
+def norm_text(value):
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip() == "":
+        return None
+    return value.strip()
+
+def norm(val):
+    if val is None:
+        return None
+    if isinstance(val, str):
+        val = val.strip()
+        return val if val else None
+    return val
+
 def insert_or_update_event(event: dict):
     conn = get_connection()
     cursor = conn.cursor()
+
     try:
+        # TRY INSERT
         cursor.execute("""
             INSERT INTO organization_events (
                 organization_id, type, area, headline, description,
@@ -88,7 +114,7 @@ def insert_or_update_event(event: dict):
             DO NOTHING
             RETURNING id;
         """, (
-            int(event["organization_id"]),
+            event["organization_id"],
             event["type"],
             event["area"],
             event["headline"],
@@ -100,41 +126,86 @@ def insert_or_update_event(event: dict):
             event.get("urgency")
         ))
 
-        inserted_row = cursor.fetchone()
-
-        if inserted_row:
+        inserted = cursor.fetchone()
+        if inserted:
             conn.commit()
-            return True
+            return "inserted"
 
+        # FETCH EXISTING
+        cursor.execute("""
+            SELECT description, instruction, effective, expires, severity, urgency
+            FROM organization_events
+            WHERE organization_id = %s
+              AND type = %s
+              AND area = %s
+              AND headline = %s;
+        """, (
+            event["organization_id"],
+            event["type"],
+            event["area"],
+            event["headline"]
+        ))
+
+        existing = cursor.fetchone()
+        if not existing:
+            return "error"
+
+        existing_tuple = (
+            norm_text(existing[0]),
+            norm_text(existing[1]),
+            existing[2],   # effective je datetime že OK
+            existing[3],   # expires enako
+            norm_text(existing[4]),
+            norm_text(existing[5])
+        )
+
+        new_tuple = (
+            norm_text(event.get("description")),
+            norm_text(event.get("instruction")),
+            norm_datetime(event.get("effective")),
+            norm_datetime(event.get("expires")),
+            norm_text(event.get("severity")),
+            norm_text(event.get("urgency"))
+        )
+
+        if existing_tuple == new_tuple:
+            return "duplicate_no_change"
+
+        # UPDATE
         cursor.execute("""
             UPDATE organization_events
-            SET severity = %s,
-                effective = %s,
-                description = %s,
+            SET description = %s,
                 instruction = %s,
+                effective = %s,
                 expires = %s,
-                urgency = %s
-            WHERE organization_id = %s AND type = %s AND area = %s AND headline = %s;
+                severity = %s,
+                urgency = %s,
+                created_at = CURRENT_TIMESTAMP
+            WHERE organization_id = %s
+            AND type = %s
+            AND area = %s
+            AND headline = %s;
         """, (
-            event.get("severity"),
-            event.get("effective"),
-            event.get("description"),
-            event.get("instruction"),
-            event.get("expires"),
-            event.get("urgency"),
-            int(event["organization_id"]),
+            norm_text(event.get("description")),
+            norm_text(event.get("instruction")),
+            norm_datetime(event.get("effective")),
+            norm_datetime(event.get("expires")),
+            norm_text(event.get("severity")),
+            norm_text(event.get("urgency")),
+            event["organization_id"],
             event["type"],
             event["area"],
             event["headline"]
         ))
 
         conn.commit()
-        return False
+        return "updated"
 
     except Exception as e:
         conn.rollback()
-        print(f"Error inserting/updating event: {e}")
-        return False
+        print("DB error:", e)
+        return "error"
+
     finally:
         cursor.close()
         conn.close()
@@ -142,31 +213,32 @@ def insert_or_update_event(event: dict):
 def get_organization_id_by_name(org_name: str):
     conn = get_connection()
     cursor = conn.cursor()
+    clean_name = " ".join(org_name.split())
 
     try:
         cursor.execute("""
             SELECT organization_id FROM organizations WHERE organization_name = %s
-        """, (org_name,))
+        """, (clean_name,))
         result = cursor.fetchone()
         return result[0] if result else None
     except Exception as e:
-        print(f"Error finding ID for '{org_name}': {e}")
+        print(f"Error finding ID for '{clean_name}': {e}")
         return None
     finally:
         cursor.close()
         conn.close()
 
-def get_events(organization_id: int, area=None, effective=None, expires=None, urgency=None):
+def get_events(organization_id=None, area=None, effective=None, expires=None, urgency=None):
     conn = get_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
     try:
-        query = """
-            SELECT * FROM organization_events
-            WHERE organization_id = %s
-        """
-        params = [organization_id]
+        query = "SELECT * FROM organization_events WHERE TRUE"
+        params = []
 
+        if organization_id is not None:
+            query += " AND organization_id = %s"
+            params.append(organization_id)
         if area:
             query += " AND area = %s"
             params.append(area)
@@ -184,6 +256,19 @@ def get_events(organization_id: int, area=None, effective=None, expires=None, ur
         return cursor.fetchall()
     except Exception as e:
         print(f"Error retrieving events: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_all_organizations():
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT organization_id, organization_name FROM organizations ORDER BY organization_id;")
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Error fetching organizations: {e}")
         return []
     finally:
         cursor.close()
