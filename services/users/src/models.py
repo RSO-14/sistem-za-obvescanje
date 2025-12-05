@@ -5,29 +5,29 @@ import strawberry
 @strawberry.type
 class User:
     id: str
-    username: str
+    username: Optional[str] = None
     email: str
-    address: str
-    region: List[str]
-    alerts: List[List[str]]
-    phone_number: str
-    role: str
-    created_at: str
+    address: Optional[str] = None
+    region: Optional[List[str]] = None
+    alerts: Optional[List[List[str]]] = None
+    phone_number: Optional[str] = None
+    role: Optional[str] = None
+    created_at: Optional[str] = None
 
 @strawberry.input
 class UserInput:
-    username: str
+    username: Optional[str]
     email: str
     password: str
     address: Optional[str] = None
     region: Optional[List[str]] = None
     alerts: Optional[List[List[str]]] = None
     phone_number: Optional[str] = None
-    role: str
+    role: Optional[str] = None
 
 @strawberry.input
 class LoginInput:
-    username: str
+    email: str
     password: str
 
 @strawberry.type
