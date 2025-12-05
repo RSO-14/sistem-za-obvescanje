@@ -1,5 +1,6 @@
 import strawberry
 from typing import Optional, List
+from .auth import get_current_user_id
 from .models import User, UserInput, LoginInput, AuthResponse
 from .db import users_collection
 from .auth import hash_password, verify_password, create_token
@@ -9,12 +10,29 @@ from datetime import datetime
 @strawberry.type
 class Query:
     @strawberry.field
+    def me(self, info) -> Optional[User]:
+        user_id = get_current_user_id(info)
+        if not user_id:
+            return None
+        user_data = users_collection.find_one({"_id": user_id})
+        if not user_data:
+            return None
+        return User(
+            id=str(user_data["_id"]),
+            email=user_data["email"],
+            address=user_data.get("address", ""),
+            region=user_data.get("region", ""),
+            phone_number=user_data.get("phone_number", ""),
+            role=user_data.get("role", ""),
+            created_at=user_data.get("created_at", datetime.utcnow().isoformat()),
+        )
+
+    @strawberry.field
     def user(self, id: str) -> Optional[User]:
         user_data = users_collection.find_one({"_id": id})
         if user_data:
             return User(
                 id=str(user_data["_id"]),
-                username=user_data["username"],
                 email=user_data["email"],
                 address=user_data.get("address") or "",
                 region=user_data.get("region") or [],
@@ -31,7 +49,6 @@ class Query:
         return [
             User(
                 id=str(user["_id"]),
-                username=user["username"],
                 email=user["email"],
                 address=user.get("address") or "",
                 region=user.get("region") or [],
@@ -61,7 +78,6 @@ class Query:
         return [
             User(
                 id=str(user["_id"]),
-                username=user["username"],
                 email=user["email"],
                 address=user.get("address") or "",
                 region=user.get("region") or [],
@@ -80,7 +96,6 @@ class Query:
         return [
             User(
                 id=str(user["_id"]),
-                username=user["username"],
                 email=user["email"],
                 address=user.get("address") or "",
                 region=user.get("region") or [],
@@ -114,13 +129,12 @@ class Query:
 class Mutation:
     @strawberry.mutation
     def register(self, input: UserInput) -> AuthResponse:
-        if users_collection.find_one({"username": input.username}):
-            raise Exception("Username already exists")
+        if users_collection.find_one({"email": input.email}):
+            raise Exception("Email already exists")
 
         user_id = str(users_collection.count_documents({}) + 1)
         user_doc = {
             "_id": user_id,
-            "username": input.username,
             "email": input.email,
             "password": hash_password(input.password),
             "address": input.address,
@@ -135,7 +149,6 @@ class Mutation:
         token = create_token(user_id)
         user = User(
             id=user_id,
-            username=input.username,
             email=input.email,
             address=input.address or "",
             region=input.region or [],
@@ -148,16 +161,19 @@ class Mutation:
 
     @strawberry.mutation
     def login(self, input: LoginInput) -> AuthResponse:
-        user_data = users_collection.find_one({"username": input.username})
+        user_data = users_collection.find_one({"email": input.email})
         if not user_data or not verify_password(input.password, user_data["password"]):
             raise Exception("Invalid credentials")
 
         token = create_token(str(user_data["_id"]))
         user = User(
             id=str(user_data["_id"]),
-            username=user_data["username"],
             email=user_data["email"],
-            created_at=user_data["created_at"]
+            address=user_data.get("address", ""),
+            region=user_data.get("region", ""),
+            phone_number=user_data.get("phone_number", ""),
+            role=user_data.get("role", ""),
+            created_at=user_data.get("created_at", datetime.utcnow().isoformat()),
         )
         return AuthResponse(token=token, user=user)
 
