@@ -4,6 +4,7 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
 uri = os.getenv('MONGO_URI')
+#uri = "mongodb://localhost:27017/usersdb"
 
 client = MongoClient(uri, server_api=ServerApi('1'))
 db = client.user_service
