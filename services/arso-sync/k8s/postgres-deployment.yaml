@@ -32,14 +32,15 @@ spec:
               mountPath: /var/lib/postgresql/data
           livenessProbe:
             exec:
-              command: ["pg_isready", "-U", "arso_user"]
+              command: [ "pg_isready", "-U", "arso_user", "-d", "arso" ]
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             exec:
-              command: ["pg_isready", "-U", "arso_user"]
+              command: [ "pg_isready", "-U", "arso_user", "-d", "arso" ]
             initialDelaySeconds: 5
             periodSeconds: 10
+
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
