@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: companies-api
+  name: companies
   labels:
-    app: companies-api
+    app: companies
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: companies-api
+      app: companies
   template:
     metadata:
       labels:
-        app: companies-api
+        app: companies
     spec:
       containers:
-        - name: companies-api
-          image: companies-api:local
+        - name: companies
+          image: companies:local
           ports:
             - containerPort: 8000
           env:
@@ -33,6 +33,13 @@ spec:
                 secretKeyRef:
                   name: postgres-secret
                   key: POSTGRES_PASSWORD
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_EXCHANGE
+              value: "events"
+            - name: RABBITMQ_ROUTING_KEY
+              value: "companies"
+              
           livenessProbe:
             httpGet:
               path: /health

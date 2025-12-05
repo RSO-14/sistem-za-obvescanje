@@ -2,6 +2,7 @@ from time import sleep
 import requests
 import xml.etree.ElementTree as ET
 from db import create_tables, get_connection
+from publisher import publish_event
 
 
 BASE_URL = "https://meteo.arso.gov.si/uploads/probase/www/warning/text/sl/warning_SLOVENIA_{queried_location}_latest_CAP.xml"
@@ -13,6 +14,10 @@ def fetch_warning_data(location: str) -> str:
     response.raise_for_status()
     return response.text
 
+def extract_area_from_headline(headline: str) -> str:
+    if "/" not in headline:
+        return None
+    return headline.split("/")[-1].strip()
 
 def parse_warning_data(data: str) -> dict:
     conn = get_connection()
@@ -71,6 +76,8 @@ def parse_warning_data(data: str) -> dict:
                     'description': description,
                     'instruction': instruction
                 })
+                
+                area = extract_area_from_headline(headline)
 
                 cursor.execute("""
                     INSERT INTO alert_info (alert_identifier, language, event, effective, onset,
@@ -82,6 +89,23 @@ def parse_warning_data(data: str) -> dict:
                      description, instruction))
 
                 conn.commit()
+                
+                if cursor.rowcount == 1 and language == "sl":
+                    publish_event({
+                        "identifier": identifier,
+                        "language": language,
+                        "event": event,
+                        "effective": effective,
+                        "onset": onset,
+                        "expires": expires,
+                        "severity": severity,
+                        "urgency": urgency,
+                        "certainty": certainty,
+                        "headline": headline,
+                        "description": description,
+                        "instruction": instruction,
+                        "area": area
+                    })
 
         return alert_info
 
