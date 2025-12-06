@@ -21,7 +21,7 @@ class Query:
             id=str(user_data["_id"]),
             email=user_data["email"],
             address=user_data.get("address", ""),
-            region=user_data.get("region", ""),
+            region=user_data.get("region") or [],
             phone_number=user_data.get("phone_number", ""),
             role=user_data.get("role", ""),
             created_at=user_data.get("created_at", datetime.utcnow().isoformat()),
@@ -42,6 +42,23 @@ class Query:
                 created_at=user_data["created_at"]
             )
         return None
+
+    @strawberry.field
+    def user_by_email(self, email: str) -> Optional[User]:
+        user = users_collection.find_one({"email": email})
+        if not user:
+            return None
+
+        return User(
+            id=str(user["_id"]),
+            email=user["email"],
+            address=user.get("address") or "",
+            region=user.get("region") or [],
+            alerts=user.get("alerts") or [],
+            phone_number=user.get("phone_number") or "",
+            role=user.get("role") or "",
+            created_at=user.get("created_at")
+        )
 
     @strawberry.field
     def users_by_region(self, region: str) -> list[User]:
@@ -87,6 +104,36 @@ class Query:
                 created_at=user["created_at"],
             )
             for user in matched_users
+        ]
+
+    @strawberry.field
+    def users_by_company_alert(self, company: str, region: str, level: str) -> List[User]:
+        users_cursor = users_collection.find({
+            "role": company,
+            "alerts": {"$exists": True, "$ne": None}
+        })
+
+        matched = []
+        for user in users_cursor:
+            alerts = user.get("alerts") or []
+
+            for alert_list in alerts:
+                if region in alert_list and level in alert_list:
+                    matched.append(user)
+                    break
+
+        return [
+            User(
+                id=str(u["_id"]),
+                email=u["email"],
+                address=u.get("address") or "",
+                region=u.get("region") or [],
+                alerts=u.get("alerts") or [],
+                phone_number=u.get("phone_number") or "",
+                role=u.get("role") or "",
+                created_at=u.get("created_at")
+            )
+            for u in matched
         ]
 
 
@@ -170,7 +217,7 @@ class Mutation:
             id=str(user_data["_id"]),
             email=user_data["email"],
             address=user_data.get("address", ""),
-            region=user_data.get("region", ""),
+            region=user_data.get("region") or [],
             phone_number=user_data.get("phone_number", ""),
             role=user_data.get("role", ""),
             created_at=user_data.get("created_at", datetime.utcnow().isoformat()),
