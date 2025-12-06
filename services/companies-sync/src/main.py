@@ -8,7 +8,11 @@ from db import (
     get_organization_id_by_name,
     insert_or_update_event,
     create_tables,
-    get_all_organizations
+    get_all_organizations,
+    insert_oncall_schedule,
+    get_active_oncall,
+    get_active_events,
+    get_all_oncall
 )
 
 app = FastAPI()
@@ -91,3 +95,40 @@ def api_get_organizations():
         {"organization_id": org_id, "organization_name": name}
         for (org_id, name) in get_all_organizations()
     ]
+    
+@app.post("/organizations/{org_name}/oncall")
+def api_add_oncall(org_name: str, payload: dict):
+    org_id = get_organization_id_by_name(org_name)
+    if not org_id:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    schedule = payload.get("on_call")
+    if not schedule or not isinstance(schedule, list):
+        raise HTTPException(status_code=400, detail="Missing or invalid on_call list")
+
+    results = insert_oncall_schedule(org_id, schedule)
+    return {
+        "organization_id": org_id,
+        "results": results
+    }
+
+@app.get("/oncall/active")
+def api_get_oncall(organization_name: str, area: str, now: datetime):
+    org_id = get_organization_id_by_name(organization_name)
+    if not org_id:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    return get_active_oncall(org_id, now, area)
+
+@app.get("/events/active")
+def api_get_active_events(organization_name: str,areas: str, now: datetime):
+    org_id = get_organization_id_by_name(organization_name)
+    if not org_id:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    areas_list = [a.strip() for a in areas.split(",") if a.strip()]
+    return get_active_events(org_id, areas_list, now)
+
+@app.get("/oncall")
+def api_get_all_oncall():
+    return get_all_oncall()

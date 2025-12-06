@@ -1,7 +1,9 @@
+from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import os
 from dateutil import parser
+import json
 
 DATABASE_CONFIG = {
     'host': os.getenv('DB_HOST'),
@@ -24,7 +26,8 @@ def create_tables():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS organizations (
                 organization_id SERIAL PRIMARY KEY,
-                organization_name TEXT UNIQUE NOT NULL
+                organization_name TEXT UNIQUE NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             );
         """)
 
@@ -43,6 +46,19 @@ def create_tables():
                 urgency TEXT,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE (organization_id, type, area, headline)
+            );
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS organization_oncall (
+                id SERIAL PRIMARY KEY,
+                organization_id INTEGER REFERENCES organizations(organization_id),
+                on_call_email TEXT NOT NULL,
+                on_call_from TIMESTAMPTZ NOT NULL,
+                on_call_to   TIMESTAMPTZ NOT NULL,
+                levels JSONB NOT NULL,
+                areas  JSONB NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             );
         """)
 
@@ -73,6 +89,70 @@ def insert_organization(org_name: str):
     except Exception as e:
         conn.rollback()
         print(f"Error inserting organization: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+def insert_oncall_schedule(org_id: int, schedule: list):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    results = []
+    try:
+        for entry in schedule:
+            levels_json = json.dumps(entry["levels"])
+            areas_json = json.dumps(entry["areas"])
+            start = parser.parse(entry["on_call_from"])
+            end = parser.parse(entry["on_call_to"])
+            email = entry["on_call_email"]
+
+            cursor.execute("""
+                SELECT id FROM organization_oncall
+                WHERE organization_id = %s
+                  AND on_call_email = %s
+                  AND on_call_from = %s
+                  AND on_call_to = %s
+                  AND levels::text = %s
+                  AND areas::text = %s;
+            """, (org_id, email, start, end, levels_json, areas_json))
+
+            existing = cursor.fetchone()
+
+            if existing:
+                results.append({
+                    "email": email,
+                    "status": "exists"
+                })
+                continue
+
+            cursor.execute("""
+                INSERT INTO organization_oncall (
+                    organization_id, on_call_email, on_call_from, on_call_to,
+                    levels, areas
+                )
+                VALUES (%s, %s, %s, %s, %s, %s);
+            """, (
+                org_id,
+                entry["on_call_email"],
+                start,
+                end,
+                levels_json,
+                areas_json
+            ))
+
+            results.append({
+                "email": entry["on_call_email"],
+                "status": "inserted"
+            })
+
+        conn.commit()
+        return results
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error inserting on-call schedule: {e}")
+        return [{"status": "error", "message": str(e)}]
+
     finally:
         cursor.close()
         conn.close()
@@ -261,6 +341,47 @@ def get_events(organization_id=None, area=None, effective=None, expires=None, ur
         cursor.close()
         conn.close()
 
+def get_active_events(organization_id: int, areas: list, now: datetime):
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    if not areas or len(areas) == 0:
+        return []
+
+    try:
+        if len(areas) == 1:
+            query = """
+                SELECT *
+                FROM organization_events
+                WHERE organization_id = %s
+                  AND area = %s
+                  AND effective <= %s
+                  AND expires >= %s
+            """
+            params = [organization_id, areas[0], now, now]
+
+        else:
+            placeholders = ",".join(["%s"] * len(areas))
+            query = f"""
+                SELECT *
+                FROM organization_events
+                WHERE organization_id = %s
+                  AND area IN ({placeholders})
+                  AND effective <= %s
+                  AND expires >= %s
+            """
+            params = [organization_id] + areas + [now, now]
+
+        cursor.execute(query, params)
+        return cursor.fetchall()
+
+    except Exception as e:
+        print(f"Error retrieving events: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
 def get_all_organizations():
     conn = get_connection()
     cursor = conn.cursor()
@@ -269,6 +390,67 @@ def get_all_organizations():
         return cursor.fetchall()
     except Exception as e:
         print(f"Error fetching organizations: {e}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_active_oncall(org_id: int, now: datetime, area: str):
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cursor.execute("""
+            SELECT 
+                on_call_email AS email,
+                levels,
+                areas
+            FROM organization_oncall
+            WHERE organization_id = %s
+              AND %s BETWEEN on_call_from AND on_call_to;
+        """, (org_id, now))
+
+        rows = cursor.fetchall()
+        filtered = [
+            {
+                "email": row["email"],
+                "levels": row["levels"]
+            }
+            for row in rows
+            if area in row["areas"]
+        ]
+
+        return filtered
+
+    except Exception as e:
+        print("Error fetching active on-call:", e)
+        return []
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_all_oncall():
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cursor.execute("""
+            SELECT
+                id,
+                organization_id,
+                on_call_email AS email,
+                on_call_from,
+                on_call_to,
+                levels,
+                areas,
+                created_at
+            FROM organization_oncall
+            ORDER BY organization_id, on_call_from;
+        """)
+        return cursor.fetchall()
+
+    except Exception as e:
+        print("Error fetching on-call schedule:", e)
         return []
     finally:
         cursor.close()
