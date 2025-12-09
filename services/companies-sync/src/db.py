@@ -40,8 +40,8 @@ def create_tables():
                 headline TEXT NOT NULL,
                 description TEXT,
                 instruction TEXT,
-                effective TIMESTAMPTZ,
-                expires TIMESTAMPTZ,
+                effective TIMESTAMPTZ NOT NULL,
+                expires TIMESTAMPTZ NOT NULL,
                 severity TEXT,
                 urgency TEXT,
                 created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -233,8 +233,8 @@ def insert_or_update_event(event: dict):
         existing_tuple = (
             norm_text(existing[0]),
             norm_text(existing[1]),
-            existing[2],   # effective je datetime že OK
-            existing[3],   # expires enako
+            existing[2],
+            existing[3],
             norm_text(existing[4]),
             norm_text(existing[5])
         )
@@ -355,7 +355,6 @@ def get_active_events(organization_id: int, areas: list, now: datetime):
                 FROM organization_events
                 WHERE organization_id = %s
                   AND area = %s
-                  AND effective <= %s
                   AND expires >= %s
             """
             params = [organization_id, areas[0], now, now]
@@ -367,7 +366,6 @@ def get_active_events(organization_id: int, areas: list, now: datetime):
                 FROM organization_events
                 WHERE organization_id = %s
                   AND area IN ({placeholders})
-                  AND effective <= %s
                   AND expires >= %s
             """
             params = [organization_id] + areas + [now, now]

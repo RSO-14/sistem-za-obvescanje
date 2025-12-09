@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from publisher import publish_event
 from db import (
     get_events,
@@ -63,6 +63,7 @@ def api_create_organization(name: str):
 def api_receive_events(payload: dict):
     org_name = payload.get("organization_name")
     events = payload.get("events", [])
+    now = datetime.now(timezone.utc)
 
     if not org_name:
         raise HTTPException(status_code=400, detail="Missing organization_name")
@@ -76,12 +77,23 @@ def api_receive_events(payload: dict):
         event["organization_name"] = org_name
         status = insert_or_update_event(event)
 
-        if status in ("inserted", "updated"):
+        expires_str = event.get("expires")
+        publish = True
+        try:
+            expires_dt = datetime.fromisoformat(expires_str)
+            expires = expires_dt.replace(tzinfo=timezone.utc)
+            if expires < now:
+                publish = False
+        except Exception as e:
+            publish = False
+            
+        if status in ("inserted", "updated") and publish:
             publish_event(event)
 
         results.append({
             "headline": event["headline"],
-            "status": status
+            "status": status,
+            "publish": publish
         })
 
     return {

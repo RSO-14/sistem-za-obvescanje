@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: companies-filter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: companies-filter
+  template:
+    metadata:
+      labels:
+        app: companies-filter
+    spec:
+      containers:
+        - name: companies-filter
+          image: companies-filter:local
+          env:
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_EXCHANGE
+              value: "events"
+            - name: RABBITMQ_ROUTING_KEY
+              value: "companies"
+            - name: USERS_SERVICE_URL
+              value: "http://users:80/graphql"
+            - name: COMPANIES_SYNC_URL
+              value: "http://companies:80"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
