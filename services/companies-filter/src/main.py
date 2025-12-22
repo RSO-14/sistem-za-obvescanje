@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from datetime import datetime
 from consumer import start_consumer
 from graphql_client import get_user
-from notifications import process_event
+from notifications import handle_event
 import logging
 logging.basicConfig(level=logging.INFO, force=True)
 
@@ -56,7 +56,7 @@ def handle_incoming_event(event: dict):
     
     # 1. Push notifications
     logging.info("Calling process_event")
-    process_event(event)
+    handle_event(event)
     logging.info("Ended process_event")
     # 2. Realtime app update
     logging.info("Calling broadcast_to_subscribers")
