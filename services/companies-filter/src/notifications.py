@@ -7,6 +7,19 @@ logging.basicConfig(level=logging.INFO, force=True)
 USERS_SERVICE_URL = os.getenv("USERS_SERVICE_URL")
 COMPANIES_SYNC_URL = os.getenv("COMPANIES_SYNC_URL")
 
+def handle_event(event: dict):
+    payload = process_event(event)
+
+    if not payload:
+        logging.info("[HANDLE EVENT] No notifications to send")
+        return
+
+    try:
+        from serverless import send_emails
+        send_emails(payload)
+    except Exception as e:
+        logging.error(f"[SERVERLESS ERROR] {e}")
+
 def graphql(query: str, variables: dict = None):
     resp = requests.post(
         USERS_SERVICE_URL,
@@ -125,23 +138,43 @@ def process_event(event: dict):
     area = event.get("area")
     level = event.get("severity")
 
-    logging.info(f"[NOTIF] Processing event='{headline}', org='{org}', area='{area}', level='{level}'")
-    notified = set()
+    logging.info(
+        f"[NOTIF] Processing event='{headline}', org='{org}', area='{area}', level='{level}'"
+    )
+
+    recipients = []
+    seen = set()
 
     # 1) On-call
-    oncall_emails = get_oncall_notifications(event)
-    for user in oncall_emails:
-        logging.info(f"[NOTIFICATION - ONCALL] → {user} | {headline}")
-        notified.add(user["email"])
+    for u in get_oncall_notifications(event):
+        email = u.get("email")
+        if email and email not in seen:
+            seen.add(email)
+            recipients.append({
+                "email": email,
+                "group": "oncall"
+            })
 
     # 2) Regular users
-    regular_emails = get_regular_user_notifications(event)
-    for user in regular_emails:
-        if user["email"] not in notified:
-            logging.info(f"[NOTIFICATION - USER] → {user} | {headline}")
-            notified.add(user["email"])
+    for u in get_regular_user_notifications(event):
+        email = u.get("email")
+        if email and email not in seen:
+            seen.add(email)
+            recipients.append({
+                "email": email,
+                "group": "regular"
+            })
 
-    if not notified:
-        logging.info("[NOTIFICATION] No one to notify.")
+    if not recipients:
+        logging.info("[NOTIF] No recipients for this event.")
+        return None
 
-    return list(notified)
+    payload = {
+        "event": event,
+        "recipients": recipients
+    }
+
+    logging.info("[NOTIF → SERVERLESS] Payload prepared:")
+    logging.info(payload)
+
+    return payload
