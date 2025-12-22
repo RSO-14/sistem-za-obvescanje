@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: users
-          image: users:local
+          image: zln00/users:latest
           ports:
             - containerPort: 8000
           env:

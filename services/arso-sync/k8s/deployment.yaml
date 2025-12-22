@@ -13,7 +13,7 @@ spec:
           spec:
             containers:
             - name: arso-sync
-              image: arso-sync:local
+              image: zln00/arso-sync:latest
               imagePullPolicy: IfNotPresent
               env:
                 - name: DB_HOST

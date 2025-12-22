@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: companies
-          image: companies:local
+          image: zln00/companies-sync:latest
           ports:
             - containerPort: 8000
           env:
