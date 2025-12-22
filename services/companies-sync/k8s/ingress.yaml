@@ -1,0 +1,13 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: companies-ingress
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`api.yourdomain.com`) && PathPrefix(`/companies`)
+      kind: Rule
+      services:
+        - name: companies-sync
+          port: 8000
