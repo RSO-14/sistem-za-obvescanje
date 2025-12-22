@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from typing import Optional
 from datetime import datetime, timezone
 from publisher import publish_event
+import logging
 from db import (
     get_events,
     insert_organization,
@@ -14,6 +15,8 @@ from db import (
     get_active_events,
     get_all_oncall
 )
+
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI()
 create_tables()
@@ -40,6 +43,7 @@ def api_get_events(
 
 @app.post("/organizations")
 def api_create_organization(name: str):
+    print(f"Creating organization: {name}")
     old_id = get_organization_id_by_name(name)
     insert_organization(name)
     new_id = get_organization_id_by_name(name)
@@ -133,7 +137,7 @@ def api_get_oncall(organization_name: str, area: str, now: datetime):
     return get_active_oncall(org_id, now, area)
 
 @app.get("/events/active")
-def api_get_active_events(organization_name: str,areas: str, now: datetime):
+def api_get_active_events(organization_name: str, areas: str, now: datetime):
     org_id = get_organization_id_by_name(organization_name)
     if not org_id:
         raise HTTPException(status_code=404, detail="Organization not found")
@@ -141,6 +145,12 @@ def api_get_active_events(organization_name: str,areas: str, now: datetime):
     areas_list = [a.strip() for a in areas.split(",") if a.strip()]
     return get_active_events(org_id, areas_list, now)
 
+# TODO - delete
 @app.get("/oncall")
 def api_get_all_oncall():
     return get_all_oncall()
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
