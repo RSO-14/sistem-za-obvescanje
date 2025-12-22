@@ -15,7 +15,7 @@ Greš v mapo od mikrostoritve (primer za users (./sistem-za-obvescanje/services/
 docker build -t users:local .
 kind load docker-image users:local --name dev-cluster
 kubectl apply -f k8s/
-kubectl get pods,svc -o wide
+kubectl get pods, svc -o wide
 ```
 Če ti kaže da je running in 1/1 potem je vse ok.
 Za lokalni dostop do servisa:
@@ -35,7 +35,6 @@ Za insert (primer za users):
 ```
 mutation {
   register(input: {
-    username: "john_doe"
     email: "john@example.com"
     password: "securePassword123"
     address: "123 Main Street"
@@ -47,7 +46,6 @@ mutation {
     token
     user {
       id
-      username
       email
       address
       region
@@ -65,7 +63,6 @@ Za query (primer za users):
 query {
   usersByRole(role: "customer") {
     id
-    username
     email
     address
     region
