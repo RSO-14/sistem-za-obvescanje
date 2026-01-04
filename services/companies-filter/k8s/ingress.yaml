@@ -1,13 +1,13 @@
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: companies
+  name: companies-filter
 spec:
   entryPoints:
     - web
   routes:
-    - match: Host(`companies-sync.localhost`)
+    - match: Host(`companies-filter.localhost`)
       kind: Rule
       services:
-        - name: companies
-          port: 80
+        - name: companies-filter
+          port: 9000
