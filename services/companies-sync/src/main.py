@@ -1,3 +1,5 @@
+# companies-sync/main.py
+
 from fastapi import FastAPI, HTTPException
 from typing import Optional
 from datetime import datetime, timezone
@@ -104,14 +106,16 @@ def api_receive_events(payload: dict):
         "organization": org_name,
         "results": results
     }
-    
+
+# TODO - delete for safety reasons
 @app.get("/organizations")
 def api_get_organizations():
     return [
         {"organization_id": org_id, "organization_name": name}
         for (org_id, name) in get_all_organizations()
     ]
-    
+
+
 @app.post("/organizations/{org_name}/oncall")
 def api_add_oncall(org_name: str, payload: dict):
     org_id = get_organization_id_by_name(org_name)
