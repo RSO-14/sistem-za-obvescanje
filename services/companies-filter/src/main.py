@@ -12,6 +12,7 @@ logging.basicConfig(level=logging.INFO, force=True)
 
 app = FastAPI()
 COMPANIES_SYNC_URL = os.getenv("COMPANIES_SYNC_URL")
+ARSO_SYNC_URL = os.getenv("ARSO_SYNC_URL")
 subscribers = {}   # user_id → list of pending events
 
 @app.get("/health")
@@ -25,8 +26,13 @@ def get_events_for_user(user_id: str):
     user_regions = user.get("region", [])
     organization = user.get("role")
 
+    if organization == 'public':
+        base_request_url = ARSO_SYNC_URL
+    else:
+        base_request_url = COMPANIES_SYNC_URL
+
     resp = requests.get(
-        f"{COMPANIES_SYNC_URL}/events/active",
+        f"{base_request_url}/events/active",
         params={
             "organization_name": organization,
             "areas": ",".join(user_regions),
@@ -37,6 +43,7 @@ def get_events_for_user(user_id: str):
     if resp.status_code != 200:
         return []
     return resp.json()
+
 
 # TODO - delete -> unnecessary due to rabbimq implementation in application
 # # Call when user opens app for realtime events from RabbitMQ
