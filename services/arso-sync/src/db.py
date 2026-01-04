@@ -39,6 +39,7 @@ def create_tables():
                            description TEXT,
                            instruction TEXT,
                            created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                           area TEXT,
                            UNIQUE (alert_identifier, language, event, onset)
                            );
                        """)

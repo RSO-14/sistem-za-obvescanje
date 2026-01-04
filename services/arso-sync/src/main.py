@@ -82,11 +82,11 @@ def parse_warning_data(data: str) -> dict:
                 cursor.execute("""
                     INSERT INTO alert_info (alert_identifier, language, event, effective, onset,
                                             expires, severity, urgency, certainty, headline,
-                                            description, instruction)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (alert_identifier, language, event, onset) DO NOTHING""",
+                                            description, instruction, area)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (alert_identifier, language, event, onset) DO NOTHING""",
                     (identifier, language, event, effective, onset,
                      expires, severity, urgency, certainty, headline,
-                     description, instruction))
+                     description, instruction, area))
 
                 conn.commit()
                 
