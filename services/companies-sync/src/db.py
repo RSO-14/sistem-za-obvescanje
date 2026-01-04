@@ -1,3 +1,5 @@
+# companies-sync/db.py
+
 from datetime import datetime
 import psycopg2
 from psycopg2 import sql
@@ -8,11 +10,11 @@ import json
 import uuid_utils as uuid
 
 DATABASE_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'port': os.getenv('DB_PORT', '5432'),
-    'database': os.getenv('DB_NAME', 'main'),
-    'user': os.getenv('DB_USER', 'main'),
-    'password': os.getenv('DB_PASSWORD', 'secure_password')
+    'host': os.getenv('DB_HOST'),
+    'port': os.getenv('DB_PORT'),
+    'database': os.getenv('DB_NAME'),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD')
 }
 
 def get_connection():
@@ -193,9 +195,9 @@ def insert_or_update_event(event: dict):
     try:
         event_table_name = str(event["organization_id"]) + "_organization_events"
         cursor.execute(sql.SQL("""
-                       INSERT INTO {} (organization_id, type, area, headline, description,
+                       INSERT INTO {} (type, area, headline, description,
                                                         instruction, effective, expires, severity, urgency)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (organization_id, type, area, headline)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (type, area, headline)
             DO
                        UPDATE SET
                            description = EXCLUDED.description,
@@ -207,7 +209,6 @@ def insert_or_update_event(event: dict):
                            created_at = CURRENT_TIMESTAMP
                            RETURNING id;
                        """).format(sql.Identifier(event_table_name)), (
-                           event["organization_id"],
                            event["type"],
                            event["area"],
                            event["headline"],
