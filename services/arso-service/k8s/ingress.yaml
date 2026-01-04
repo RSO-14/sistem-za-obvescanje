@@ -1,0 +1,13 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: arso-service
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`arso-service.localhost`)
+      kind: Rule
+      services:
+        - name: arso-service
+          port: 80

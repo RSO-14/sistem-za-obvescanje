@@ -1,0 +1,6 @@
+psycopg2-binary
+fastapi
+uvicorn
+pika
+python-dateutil
+uuid-utils
