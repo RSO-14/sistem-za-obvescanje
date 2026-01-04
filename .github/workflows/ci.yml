@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [ users, arso-sync, companies-filter, companies-sync ]
+        service: [ users, arso-service, arso-sync, companies-filter, companies-sync ]
 
     steps:
       - name: Checkout
