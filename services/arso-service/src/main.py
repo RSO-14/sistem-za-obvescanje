@@ -10,19 +10,10 @@ app = FastAPI()
 def health():
     return {"status": "ok"}
 
-@app.get("/events")
-def api_get_events(
-    area: Optional[str] = None,
-    effective: Optional[datetime] = None,
-    expires: Optional[datetime] = None,
-    urgency: Optional[str] = None
-):
-    return
-
 @app.get("/events/active")
-def api_get_active_events(areas: str, now: datetime):
+def api_get_active_events(organisation_name: str, areas: str):
     areas_list = [a.strip() for a in areas.split(",") if a.strip()]
-    return get_active_events(areas_list, now)
+    return get_active_events(areas_list)
 
 
 if __name__ == "__main__":

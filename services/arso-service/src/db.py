@@ -6,11 +6,11 @@ from psycopg2.extras import RealDictCursor
 import os
 
 DATABASE_CONFIG = {
-    'host': os.getenv('DB_HOST', 'localhost'),
-    'port': os.getenv('DB_PORT', '5432'),
-    'database': os.getenv('DB_NAME', 'postgres'),
-    'user': os.getenv('DB_USER', 'main'),
-    'password': os.getenv('DB_PASSWORD', 'QJpwX53lar404!')
+    'host': os.getenv('DB_HOST'),
+    'port': os.getenv('DB_PORT'),
+    'database': os.getenv('DB_NAME'),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD')
 }
 
 def get_connection():
@@ -18,7 +18,7 @@ def get_connection():
     return psycopg2.connect(**DATABASE_CONFIG)
 
 
-def get_active_events(areas: list, now: datetime):
+def get_active_events(areas: list):
     conn = get_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -28,18 +28,18 @@ def get_active_events(areas: list, now: datetime):
             query = """
                 SELECT * FROM alert_info
                   WHERE area = %s
-                  AND expires >= %s
+                  AND expires >= NOW()
             """
-            params = [areas[0], now, now]
+            params = [areas[0]]
 
         else:
             placeholders = ",".join(["%s"] * len(areas))
             query = f"""
                 SELECT * FROM alert_info
                   WHERE area IN ({placeholders})
-                  AND expires >= %s
+                  AND expires >= NOW()
             """
-            params = areas + [now, now]
+            params = areas
 
         cursor.execute(sql.SQL(query), params)
         return cursor.fetchall()
