@@ -27,6 +27,8 @@ spec:
               value: "http://users:80/graphql"
             - name: COMPANIES_SYNC_URL
               value: "http://companies:80"
+            - name: ARSO_SYNC_URL
+              value: "http://arso-service:80"
 
           livenessProbe:
             httpGet:
