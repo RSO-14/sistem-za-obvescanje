@@ -146,26 +146,22 @@ def api_add_oncall(org_name: str, payload: dict):
     }
 
 @app.get("/oncall/active")
-def api_get_oncall(organization_name: str, area: str, now: datetime):
+def api_get_oncall(organization_name: str, area: str):
     org_id = get_organization_id_by_name(organization_name)
     if not org_id:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    return get_active_oncall(org_id, now, area)
+    return get_active_oncall(org_id, area)
+
 
 @app.get("/events/active")
-def api_get_active_events(organization_name: str, areas: str, now: datetime):
+def api_get_active_events(organization_name: str, areas: str):
     org_id = get_organization_id_by_name(organization_name)
     if not org_id:
         raise HTTPException(status_code=404, detail="Organization not found")
 
     areas_list = [a.strip() for a in areas.split(",") if a.strip()]
-    return get_active_events(org_id, areas_list, now)
-
-# TODO - delete
-@app.get("/oncall")
-def api_get_all_oncall():
-    return get_all_oncall()
+    return get_active_events(org_id, areas_list)
 
 
 if __name__ == "__main__":

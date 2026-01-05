@@ -285,7 +285,7 @@ def get_events(organization_id=None, area=None, effective=None, expires=None, ur
         cursor.close()
         conn.close()
 
-def get_active_events(organization_id: int, areas: list, now: datetime):
+def get_active_events(organization_id: int, areas: list):
     conn = get_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -300,9 +300,9 @@ def get_active_events(organization_id: int, areas: list, now: datetime):
                 FROM {}
                 WHERE organization_id = %s
                   AND area = %s
-                  AND expires >= %s
+                  AND expires >= NOW()
             """
-            params = [organization_id, areas[0], now, now]
+            params = [organization_id, areas[0]]
 
         else:
             placeholders = ",".join(["%s"] * len(areas))
@@ -311,9 +311,9 @@ def get_active_events(organization_id: int, areas: list, now: datetime):
                 FROM {{}}
                 WHERE organization_id = %s
                   AND area IN ({placeholders})
-                  AND expires >= %s
+                  AND expires >= NOW()
             """
-            params = [organization_id] + areas + [now, now]
+            params = [organization_id] + areas
 
         cursor.execute(sql.SQL(query).format(sql.Identifier(event_table_name)), params)
         return cursor.fetchall()
@@ -338,7 +338,7 @@ def get_all_organizations():
         cursor.close()
         conn.close()
 
-def get_active_oncall(org_id: int, now: datetime, area: str):
+def get_active_oncall(org_id: int, area: str):
     conn = get_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
 
@@ -350,8 +350,8 @@ def get_active_oncall(org_id: int, now: datetime, area: str):
                 levels,
                 areas
             FROM {}
-              WHERE %s BETWEEN on_call_from AND on_call_to;
-        """).format(sql.Identifier(oncall_table_name)), (now))
+              WHERE NOW() BETWEEN on_call_from AND on_call_to;
+        """).format(sql.Identifier(oncall_table_name)))
 
         rows = cursor.fetchall()
         filtered = [
