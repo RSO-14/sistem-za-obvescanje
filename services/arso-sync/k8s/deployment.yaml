@@ -14,7 +14,7 @@ spec:
             containers:
             - name: arso-sync
               image: zln00/arso-sync:latest
-              imagePullPolicy: IfNotPresent
+              imagePullPolicy: Always
               env:
                 - name: DB_HOST
                   value: "postgres"

@@ -17,6 +17,7 @@ spec:
       containers:
         - name: users
           image: zln00/users:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           env:

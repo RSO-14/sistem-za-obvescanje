@@ -17,6 +17,7 @@ spec:
       containers:
         - name: companies
           image: zln00/companies-sync:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           env:

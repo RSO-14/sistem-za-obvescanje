@@ -15,6 +15,7 @@ spec:
       containers:
         - name: companies-filter
           image: zln00/companies-filter:latest
+          imagePullPolicy: Always
           env:
             - name: RABBITMQ_HOST
               value: "rabbitmq"
