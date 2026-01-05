@@ -21,8 +21,6 @@ def get_connection():
 def get_active_events(areas: list):
     conn = get_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
-
-
     try:
         if len(areas) == 1:
             query = """
