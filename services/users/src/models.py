@@ -5,7 +5,6 @@ import strawberry
 @strawberry.type
 class User:
     id: str
-    username: Optional[str] = None
     email: str
     address: Optional[str] = None
     region: Optional[List[str]] = None
@@ -16,7 +15,6 @@ class User:
 
 @strawberry.input
 class UserInput:
-    username: Optional[str]
     email: str
     password: str
     address: Optional[str] = None

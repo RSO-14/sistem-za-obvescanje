@@ -160,7 +160,6 @@ class Query:
         return [
             User(
                 id=str(user["_id"]),
-                username=user["username"],
                 email=user["email"],
                 address=user.get("address") or "",
                 region=user.get("region") or [],
