@@ -298,22 +298,20 @@ def get_active_events(organization_id: int, areas: list):
             query = """
                 SELECT *
                 FROM {}
-                WHERE organization_id = %s
-                  AND area = %s
+                  WHERE area = %s
                   AND expires >= NOW()
             """
-            params = [organization_id, areas[0]]
+            params = [areas[0]]
 
         else:
             placeholders = ",".join(["%s"] * len(areas))
             query = f"""
                 SELECT *
                 FROM {{}}
-                WHERE organization_id = %s
-                  AND area IN ({placeholders})
+                  WHERE area IN ({placeholders})
                   AND expires >= NOW()
             """
-            params = [organization_id] + areas
+            params = areas
 
         cursor.execute(sql.SQL(query).format(sql.Identifier(event_table_name)), params)
         return cursor.fetchall()
@@ -367,34 +365,6 @@ def get_active_oncall(org_id: int, area: str):
 
     except Exception as e:
         print("Error fetching active on-call:", e)
-        return []
-    finally:
-        cursor.close()
-        conn.close()
-
-# TODO - delete
-def get_all_oncall():
-    conn = get_connection()
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-
-    try:
-        cursor.execute("""
-            SELECT
-                id,
-                organization_id,
-                on_call_email AS email,
-                on_call_from,
-                on_call_to,
-                levels,
-                areas,
-                created_at
-            FROM organization_oncall
-            ORDER BY organization_id, on_call_from;
-        """)
-        return cursor.fetchall()
-
-    except Exception as e:
-        print("Error fetching on-call schedule:", e)
         return []
     finally:
         cursor.close()
