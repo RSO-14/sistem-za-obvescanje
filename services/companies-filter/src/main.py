@@ -2,6 +2,7 @@ import json
 import os
 import requests
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from datetime import datetime
 from consumer import start_consumer
@@ -11,6 +12,16 @@ import logging
 logging.basicConfig(level=logging.INFO, force=True)
 
 app = FastAPI()
+origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,        # use ["*"] to allow any origin (not recommended in production)
+    allow_credentials=True,
+    allow_methods=["*"],          # or restrict: ["GET", "POST", "OPTIONS"]
+    allow_headers=["*"],          # or restrict to specific headers
+
+)
 COMPANIES_SYNC_URL = os.getenv("COMPANIES_SYNC_URL")
 ARSO_SYNC_URL = os.getenv("ARSO_SYNC_URL")
 subscribers = {}   # user_id → list of pending events
