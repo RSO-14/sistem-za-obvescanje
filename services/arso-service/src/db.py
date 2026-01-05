@@ -25,7 +25,7 @@ def get_active_events(areas: list):
         if len(areas) == 1:
             query = """
                 SELECT * FROM alert_info
-                  WHERE area = %s
+                  WHERE LOWER(area) = LOWER(%s)
                   AND expires >= NOW()
             """
             params = [areas[0]]
@@ -34,7 +34,7 @@ def get_active_events(areas: list):
             placeholders = ",".join(["%s"] * len(areas))
             query = f"""
                 SELECT * FROM alert_info
-                  WHERE area IN ({placeholders})
+                  WHERE LOWER(area) IN (LOWER({placeholders}))
                   AND expires >= NOW()
             """
             params = areas

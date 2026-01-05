@@ -298,7 +298,7 @@ def get_active_events(organization_id: int, areas: list):
             query = """
                 SELECT *
                 FROM {}
-                  WHERE area = %s
+                  WHERE LOWER(area) = LOWER(%s)
                   AND expires >= NOW()
             """
             params = [areas[0]]
@@ -308,7 +308,7 @@ def get_active_events(organization_id: int, areas: list):
             query = f"""
                 SELECT *
                 FROM {{}}
-                  WHERE area IN ({placeholders})
+                  WHERE LOWER(area) IN (LOWER({placeholders}))
                   AND expires >= NOW()
             """
             params = areas
