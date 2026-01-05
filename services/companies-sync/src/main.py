@@ -15,8 +15,7 @@ from db import (
     get_all_organizations,
     insert_oncall_schedule,
     get_active_oncall,
-    get_active_events,
-    get_all_oncall
+    get_active_events
 )
 
 logging.basicConfig(level=logging.INFO)
