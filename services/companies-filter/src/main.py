@@ -46,8 +46,7 @@ def get_events_for_user(user_id: str):
         f"{base_request_url}/events/active",
         params={
             "organization_name": organization,
-            "areas": ",".join(user_regions),
-            "now": datetime.utcnow().isoformat()
+            "areas": ",".join(user_regions)
         }
     )
 
