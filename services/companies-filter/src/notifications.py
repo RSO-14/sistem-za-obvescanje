@@ -2,12 +2,25 @@ import logging
 import requests
 from datetime import datetime, timezone
 import os
+import time
+
 logging.basicConfig(level=logging.INFO, force=True)
 
 USERS_SERVICE_URL = os.getenv("USERS_SERVICE_URL")
 COMPANIES_SYNC_URL = os.getenv("COMPANIES_SYNC_URL")
 
-def handle_event(event: dict):
+def handle_event(event: dict, routing_key: str):
+    """
+    routing_key:
+      - companies → normal company logic (on-call + regular users)
+      - arso      → PUBLIC users only, no on-call
+    """
+    if routing_key == "arso":
+        event["organization_name"] = "public"
+        event["_skip_oncall"] = True
+    else:
+        event["_skip_oncall"] = False
+
     payload = process_event(event)
 
     if not payload:
@@ -21,17 +34,19 @@ def handle_event(event: dict):
         logging.error(f"[SERVERLESS ERROR] {e}")
 
 def graphql(query: str, variables: dict = None):
-    resp = requests.post(
-        USERS_SERVICE_URL,
-        json={"query": query, "variables": variables or {}}
-    )
-
-    try:
-        return resp.json().get("data")
-    except:
-        logging.error("GraphQL error:", resp.text)
+    for i in range(3):
+        try:
+            resp = requests.post(
+                USERS_SERVICE_URL,
+                json={"query": query, "variables": variables or {}},
+                timeout=15
+            )
+            return resp.json().get("data")
+        except Exception as e:
+            logging.error(f"[GRAPHQL ERROR] attempt {i+1}/3): {e}")
+            time.sleep(1)
         return None
-        
+    
 def get_oncall_notifications(event):
     org = event["organization_name"]
     area = event["area"]
@@ -95,6 +110,7 @@ def get_oncall_notifications(event):
         logging.error(f"[ONCALL ERROR] {e}")
         return []
 
+
 def get_regular_user_notifications(event):
     org = event["organization_name"]
     area = event["area"]
@@ -113,7 +129,7 @@ def get_regular_user_notifications(event):
         "region": area,
         "level": level
     }
-    
+
     result = graphql(query, variables)
     logging.info(f"[USERS] Raw GraphQL result: {result}")
 
@@ -131,7 +147,7 @@ def get_regular_user_notifications(event):
 
     logging.info(f"[USERS] Final regular user notifications: {final}")
     return final
-
+    
 def process_event(event: dict):
     headline = event.get("headline")
     org = event.get("organization_name")
@@ -142,18 +158,23 @@ def process_event(event: dict):
         f"[NOTIF] Processing event='{headline}', org='{org}', area='{area}', level='{level}'"
     )
 
+    if not org or not area:
+        logging.warning("[NOTIF] Missing organization_name or area")
+        return None
+
     recipients = []
     seen = set()
 
-    # 1) On-call
-    for u in get_oncall_notifications(event):
-        email = u.get("email")
-        if email and email not in seen:
-            seen.add(email)
-            recipients.append({
-                "email": email,
-                "group": "oncall"
-            })
+    # 1) ON-CALL (only for companies)
+    if not event.get("_skip_oncall", False):
+        for u in get_oncall_notifications(event):
+            email = u.get("email")
+            if email and email not in seen:
+                seen.add(email)
+                recipients.append({
+                    "email": email,
+                    "group": "oncall"
+                })
 
     # 2) Regular users
     for u in get_regular_user_notifications(event):

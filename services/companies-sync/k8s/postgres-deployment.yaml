@@ -35,11 +35,15 @@ spec:
               command: ["pg_isready", "-U", "companies_user", "-h", "localhost"]
             initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "companies_user", "-h", "localhost"]
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
       volumes:
         - name: postgres-companies-data
           persistentVolumeClaim:

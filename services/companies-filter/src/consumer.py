@@ -8,55 +8,73 @@ import logging
 logging.basicConfig(level=logging.INFO, force=True)
 RABBIT_HOST = os.getenv("RABBITMQ_HOST")
 RABBIT_EXCHANGE = os.getenv("RABBITMQ_EXCHANGE")
-ROUTING_KEY = os.getenv("RABBITMQ_ROUTING_KEY")
-QUEUE_NAME = ROUTING_KEY + "_queue"
+ROUTING_KEYS = [
+    k.strip()
+    for k in os.getenv("RABBITMQ_ROUTING_KEYS", "").split(",")
+    if k.strip()
+]
+QUEUE_NAME = "events_queue"
+
+if not ROUTING_KEYS:
+    raise RuntimeError("RABBITMQ_ROUTING_KEYS is not set")
 
 def start_consumer(on_event_callback):
     def consume_loop():
         while True:
             try:
-                logging.info("[RabbitMQ] Connecting as consumer...")
+                logging.info("[RabbitMQ] Starting consumer...")
+                logging.info(f"[RabbitMQ] Routing keys: {ROUTING_KEYS}")
 
                 connection = pika.BlockingConnection(
                     pika.ConnectionParameters(host=RABBIT_HOST)
                 )
                 channel = connection.channel()
 
-                # Declare exchange once
+                # Exchange (idempotent)
                 channel.exchange_declare(
                     exchange=RABBIT_EXCHANGE,
                     exchange_type="direct",
                     durable=True
                 )
 
-                # Declare queue once
-                channel.queue_declare(queue=QUEUE_NAME, durable=True)
-                channel.queue_bind(
-                    exchange=RABBIT_EXCHANGE,
+                # Queue (idempotent)
+                channel.queue_declare(
                     queue=QUEUE_NAME,
-                    routing_key=ROUTING_KEY
+                    durable=True
                 )
 
-                logging.info(f"[RabbitMQ] Listening on queue: {QUEUE_NAME}")
+                # Bind queue na VSE routing key-e
+                for key in ROUTING_KEYS:
+                    channel.queue_bind(
+                        exchange=RABBIT_EXCHANGE,
+                        queue=QUEUE_NAME,
+                        routing_key=key
+                    )
+                    logging.info(f"[RabbitMQ] Bound queue '{QUEUE_NAME}' → '{key}'")
 
-                # Consume callback
+                # Fair dispatch
+                channel.basic_qos(prefetch_count=1)
+
                 def callback(ch, method, properties, body):
                     try:
                         event = json.loads(body)
-                        logging.info(f"[RabbitMQ] Received event: {event.get('headline')}")
+                        rk = method.routing_key
 
-                        on_event_callback(event)
+                        logging.info(
+                            f"[RabbitMQ] Received ({rk}): {event.get('headline')}"
+                        )
 
-                        # ACK only if processing succeeded
+                        # Predaj event aplikaciji
+                        on_event_callback(event, rk)
+
                         ch.basic_ack(delivery_tag=method.delivery_tag)
 
                     except Exception as e:
                         logging.error(f"[RabbitMQ] Processing error: {e}")
-                        # Safe rejection: requeue = False to avoid infinite loops
-                        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-
-                # Fair dispatch (optional)
-                channel.basic_qos(prefetch_count=1)
+                        ch.basic_nack(
+                            delivery_tag=method.delivery_tag,
+                            requeue=False
+                        )
 
                 channel.basic_consume(
                     queue=QUEUE_NAME,

@@ -21,8 +21,8 @@ spec:
               value: "rabbitmq"
             - name: RABBITMQ_EXCHANGE
               value: "events"
-            - name: RABBITMQ_ROUTING_KEY
-              value: "companies"
+            - name: RABBITMQ_ROUTING_KEYS
+              value: "companies,arso"
             - name: USERS_SERVICE_URL
               value: "http://users:80/graphql"
             - name: COMPANIES_SYNC_URL

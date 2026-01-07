@@ -31,15 +31,6 @@ def get_channel():
                 durable=True
             )
 
-            # Queue declare
-            queue_name = ROUTING_KEY + "_queue"
-            channel.queue_declare(queue=queue_name, durable=True)
-            channel.queue_bind(
-                exchange=RABBIT_EXCHANGE,
-                queue=queue_name,
-                routing_key=ROUTING_KEY
-            )
-
             # Enable publisher confirms
             channel.confirm_delivery()
             return channel

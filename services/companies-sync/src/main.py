@@ -6,6 +6,7 @@ from typing import Optional
 from datetime import datetime, timezone
 from publisher import publish_event
 import logging
+import time
 from db import (
     get_events,
     insert_organization,
@@ -33,7 +34,17 @@ app.add_middleware(
 
 )
 
-create_tables()
+@app.on_event("startup")
+def startup():
+    for i in range(10):
+        try:
+            create_tables()
+            logging.info("DB ready, tables ensured.")
+            return
+        except Exception as e:
+            logging.warning(f"DB not ready ({i+1}/10): {e}")
+            time.sleep(2)
+    raise RuntimeError("DB not reachable after retries")
 
 @app.get("/health")
 def health():

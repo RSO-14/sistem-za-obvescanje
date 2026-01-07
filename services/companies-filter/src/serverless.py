@@ -6,7 +6,7 @@ logging.basicConfig(level=logging.INFO, force=True)
 
 BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
 SENDER_EMAIL = os.getenv("SENDER_EMAIL", "")
-SENDER_NAME = os.getenv("SENDER_NAME", "Sistem za obveščanje")
+SENDER_NAME = os.getenv("SENDER_NAME", "AlertHub")
 
 def _format_value(value):
     if value is None:
@@ -17,25 +17,25 @@ def _format_value(value):
 
 def build_event_body(event: dict) -> str:
     lines = []
-    lines.append("Prejeli ste novo sistemsko opozorilo.\n")
+    lines.append("You have received a new system alert.\n")
 
     def add(label, key):
         value = _format_value(event.get(key))
         if value:
-            lines.append(f"{label}: {value}")
+            lines.append(f"<strong>{label}:</strong> {value}<br>")
 
-    add("Ime dogodka", "headline")
-    add("Tip", "type")
-    add("Območje", "area")
-    add("Opis", "description")
-    add("Navodila", "instruction")
-    add("Veljavno od", "effective")
-    add("Veljavno do", "expires")
-    add("Resnost", "severity")
-    add("Nujnost", "urgency")
+    add("Event name", "headline")
+    add("Type", "type")
+    add("Area", "area")
+    add("Description", "description")
+    add("Instructions", "instruction")
+    add("Valid from", "effective")
+    add("Valid until", "expires")
+    add("Severity", "severity")
+    add("Urgency", "urgency")
 
-    lines.append("\n—\nEvent Monitor")
-    return "\n".join(lines)
+    lines.append("\n—\nAlertHub")
+    return "".join(lines)
 
 def send_emails(payload: dict):
     event = payload.get("event")
@@ -49,7 +49,7 @@ def send_emails(payload: dict):
         logging.info("[SERVERLESS] No recipients to notify")
         return
 
-    subject = f"Opozorilo: {event.get('headline', 'Dogodek')}"
+    subject = f"Alert: {event.get('headline', 'Event')}"
     body = build_event_body(event)
 
     to_list = [

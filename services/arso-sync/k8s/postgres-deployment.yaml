@@ -36,11 +36,15 @@ spec:
               command: [ "pg_isready", "-U", "arso_user", "-d", "arso" ]
             initialDelaySeconds: 30
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
           readinessProbe:
             exec:
               command: [ "pg_isready", "-U", "arso_user", "-d", "arso" ]
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
 
       volumes:
         - name: postgres-data
