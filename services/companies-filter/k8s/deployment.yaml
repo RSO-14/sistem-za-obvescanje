@@ -19,6 +19,17 @@ spec:
           envFrom:
             - configMapRef:
                 name: companies-filter-config
+          env:
+            - name: SENDER_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: serverless-secret
+                  key: SENDER_EMAIL
+            - name: BREVO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: serverless-secret
+                  key: BREVO_API_KEY
           livenessProbe:
             httpGet:
               path: /health
