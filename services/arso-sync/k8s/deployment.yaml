@@ -15,24 +15,13 @@ spec:
             - name: arso-sync
               image: zln00/arso-sync:latest
               imagePullPolicy: Always
+              envFrom:
+                - configMapRef:
+                    name: arso-config
               env:
-                - name: DB_HOST
-                  value: "postgres"
-                - name: DB_PORT
-                  value: "5432"
-                - name: DB_NAME
-                  value: "arso"
-                - name: DB_USER
-                  value: "arso_user"
                 - name: DB_PASSWORD
                   valueFrom:
                     secretKeyRef:
                       name: postgres-secret
                       key: POSTGRES_PASSWORD
-                - name: RABBITMQ_HOST
-                  value: "rabbitmq"
-                - name: RABBITMQ_EXCHANGE
-                  value: "events"
-                - name: RABBITMQ_ROUTING_KEY
-                  value: "arso"
             restartPolicy: OnFailure

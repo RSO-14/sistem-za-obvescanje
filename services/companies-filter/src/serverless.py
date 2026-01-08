@@ -4,9 +4,8 @@ import requests
 
 logging.basicConfig(level=logging.INFO, force=True)
 
-BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
-SENDER_EMAIL = os.getenv("SENDER_EMAIL", "")
-SENDER_NAME = os.getenv("SENDER_NAME", "AlertHub")
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+SENDER_EMAIL = os.getenv("SENDER_EMAIL")
 
 def _format_value(value):
     if value is None:
@@ -38,6 +37,10 @@ def build_event_body(event: dict) -> str:
     return "".join(lines)
 
 def send_emails(payload: dict):
+    if not BREVO_API_KEY or not SENDER_EMAIL:
+        logging.error("[SERVERLESS] Missing BREVO_API_KEY or SENDER_EMAIL env var")
+        raise RuntimeError("Missing BREVO_API_KEY or SENDER_EMAIL env var")
+
     event = payload.get("event")
     recipients = payload.get("recipients", [])
 
@@ -65,7 +68,7 @@ def send_emails(payload: dict):
     payload_json = {
         "sender": {
             "email": SENDER_EMAIL,
-            "name": SENDER_NAME
+            "name": "AlertHub"
         },
         "to": to_list,
         "subject": subject,

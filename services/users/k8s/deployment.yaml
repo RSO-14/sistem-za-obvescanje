@@ -20,9 +20,15 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: users-config
           env:
-            - name: MONGO_URI
-              value: "mongodb://mongo:27017/usersdb"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: users-secret
+                  key: JWT_SECRET
           readinessProbe:
             httpGet:
               path: /

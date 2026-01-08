@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: arso-service-config
+data:
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "arso"
+  DB_USER: "arso_user"

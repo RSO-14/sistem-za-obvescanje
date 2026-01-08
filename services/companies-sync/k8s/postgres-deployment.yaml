@@ -17,11 +17,10 @@ spec:
           image: postgres:17
           ports:
             - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-companies-config
           env:
-            - name: POSTGRES_DB
-              value: "companies"
-            - name: POSTGRES_USER
-              value: "companies_user"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:

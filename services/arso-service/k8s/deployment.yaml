@@ -19,15 +19,10 @@ spec:
           image: zln00/arso-service:latest
           ports:
             - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: arso-service-config
           env:
-            - name: DB_HOST
-              value: "postgres"
-            - name: DB_PORT
-              value: "5432"
-            - name: DB_NAME
-              value: "arso"
-            - name: DB_USER
-              value: "arso_user"
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:

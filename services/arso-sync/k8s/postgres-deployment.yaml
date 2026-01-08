@@ -18,11 +18,10 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-arso-config
           env:
-            - name: POSTGRES_DB
-              value: "arso"
-            - name: POSTGRES_USER
-              value: "arso_user"
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:

@@ -90,7 +90,7 @@ def parse_warning_data(data: str) -> dict:
 
                 conn.commit()
                 
-                if cursor.rowcount == 1 and language == "sl":
+                if cursor.rowcount == 1 and language == "en-GB":
                     publish_event({
                         "identifier": identifier,
                         "language": language,

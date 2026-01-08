@@ -16,20 +16,9 @@ spec:
         - name: companies-filter
           image: zln00/companies-filter:latest
           imagePullPolicy: Always
-          env:
-            - name: RABBITMQ_HOST
-              value: "rabbitmq"
-            - name: RABBITMQ_EXCHANGE
-              value: "events"
-            - name: RABBITMQ_ROUTING_KEYS
-              value: "companies,arso"
-            - name: USERS_SERVICE_URL
-              value: "http://users:80/graphql"
-            - name: COMPANIES_SYNC_URL
-              value: "http://companies:80"
-            - name: ARSO_SYNC_URL
-              value: "http://arso-service:80"
-
+          envFrom:
+            - configMapRef:
+                name: companies-filter-config
           livenessProbe:
             httpGet:
               path: /health

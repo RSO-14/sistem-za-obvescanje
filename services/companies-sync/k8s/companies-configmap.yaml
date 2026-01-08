@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: companies-config
+data:
+  DB_HOST: "postgres-companies"
+  DB_PORT: "5432"
+  DB_NAME: "companies"
+  DB_USER: "companies_user"
+  RABBITMQ_HOST: "rabbitmq"
+  RABBITMQ_EXCHANGE: "events"
+  RABBITMQ_ROUTING_KEY: "companies"

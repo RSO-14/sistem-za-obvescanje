@@ -1,9 +1,10 @@
 import bcrypt
 import jwt
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 
-SECRET_KEY = "your-secret-key-change-this"
+SECRET_KEY = os.getenv("JWT_SECRET")
 ALGORITHM = "HS256"
 
 def hash_password(password: str) -> str:
