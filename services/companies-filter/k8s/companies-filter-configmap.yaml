@@ -9,3 +9,4 @@ data:
   USERS_SERVICE_URL: "http://users:80/graphql"
   COMPANIES_SYNC_URL: "http://companies:80"
   ARSO_SYNC_URL: "http://arso-service:80"
+  NOTIFICATION_FUNCTION_URL: "REPLACE_ME"

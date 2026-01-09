@@ -7,6 +7,7 @@ logging.basicConfig(level=logging.INFO, force=True)
 
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
+NOTIFICATION_FUNCTION_TOKEN = os.getenv("NOTIFICATION_FUNCTION_TOKEN")
 BREVO_URL = "https://api.brevo.com/v3/smtp/email"
 
 def _format_value(value):
@@ -85,8 +86,10 @@ def send_emails(payload: dict):
             json=payload_json,
             timeout=10
         )
-
-        resp.raise_for_status()
+        
+        if resp.status_code >= 400:
+            logging.error(f"[SERVERLESS ERROR] status={resp.status_code} body={resp.text}")
+            resp.raise_for_status()
 
         msg_id = None
         try:
@@ -96,6 +99,9 @@ def send_emails(payload: dict):
 
         logging.info(f"[SERVERLESS] Email sent to {len(to_list)} recipients"
                      + (f" | messageId={msg_id}" if msg_id else ""))
+        
+        # TODO: add when serverless function is ready
+        # return {"sent": len(to_list), "messageId": msg_id}
 
     except requests.HTTPError:
         logging.error(f"[SERVERLESS ERROR] status={resp.status_code} body={resp.text}")
@@ -103,3 +109,21 @@ def send_emails(payload: dict):
     except Exception as e:
         logging.error(f"[SERVERLESS EXCEPTION] {e}")
         raise
+    
+def notify(request):
+    if NOTIFICATION_FUNCTION_TOKEN:
+        auth = request.headers.get("Authorization", "")
+        if auth != f"Bearer {NOTIFICATION_FUNCTION_TOKEN}":
+            return ("Unauthorized", 401)
+
+    try:
+        payload = request.get_json(silent=True)
+        if not payload:
+            return ("Missing JSON body", 400)
+
+        result = send_emails(payload)
+        return (result, 200)
+
+    except Exception as e:
+        logging.exception(f"[FUNCTION EXCEPTION] {e}")
+        return ("Internal Server Error", 500)
