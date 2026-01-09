@@ -9,7 +9,6 @@
 Sistem temelji na mikrostoritveni arhitekturi z jasno ločenimi odgovornostmi posameznih komponent.  
 Komunikacija med storitvami poteka prek sinhronih (REST, GraphQL) in asinhronih (event-driven) mehanizmov.
 
-
 ## Mikrostoritve
 
 - **users** – upravljanje uporabnikov, avtentikacije in uporabniških preferenc
@@ -42,24 +41,89 @@ Podrobna tehnična dokumentacija sistema je na voljo v:
 
 
 ## Lokalno razvojno okolje
+Projekt se lokalno izvaja v okolju Kubernetes z uporabo orodja kind. Mikrostoritve, podatkovne baze in Ingress controller se poganjajo znotraj lokalnega kind clustra.
 
-### Zahteve
-- Docker
-- kubectl
-- kind
+### 1. Zahteve
+- Git 
+- Docker  
+- kind  
+- kubectl  
+- Helm  
+- Node.js (za frontend)
 
-### Zagon sistema
-> **TODO:** Dodati navodila za zagon sistema v lokalnem Kubernetes okolju (kind).
+### 2. Kloniranje repozitorija
+```bash
+git clone https://github.com/RSO-14/sistem-za-obvescanje.git
+cd sistem-za-obvescanje
+```
 
+### 3. Vzpostavitev lokalnega kind clustra (Windows PowerShell)
+```powershell
+winget install Kubernetes.kind
 
-## Namestitev v oblak
+@"
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30080
+    hostPort: 30080
+    protocol: TCP
+  - containerPort: 30443
+    hostPort: 30443
+    protocol: TCP
+"@ | kind create cluster --name dev-cluster --config -
+```
 
-Ciljno produkcijsko okolje temelji na Google Cloud Platform:
-- Google Kubernetes Engine (GKE)
-- Google Cloud Functions
+### 4. Namestitev Traefik in infrastrukture
+```bash
+helm repo add traefik https://traefik.github.io/charts
+helm repo update
 
-> **TODO:** Dodati navodila za namestitev v oblačno okolje.
+helm install traefik traefik/traefik \
+  --set service.type=NodePort \
+  --set ports.web.nodePort=30080 \
+  --set ports.websecure.nodePort=30443
 
+helm upgrade --install traefik traefik/traefik -f services/infrastructure/values.yaml
+
+kubectl apply -f services/infrastructure/rabbitmq-pvc.yaml
+kubectl apply -f services/infrastructure/rabbitmq-deployment.yaml
+kubectl apply -f services/infrastructure/rabbitmq-service.yaml
+```
+
+### 5. Namestitev mikrostoritev
+```bash
+kubectl apply -f services/arso-sync/k8s/
+kubectl apply -f services/companies-sync/k8s/
+kubectl apply -f services/users/k8s/
+kubectl apply -f services/companies-filter/k8s/
+kubectl apply -f services/arso-service/k8s/
+```
+
+Preverjanje, ali so vsi podi v stanju Running oziroma ali so CronJob opravila ustvarjena:
+
+```bash
+kubectl get pods,svc -o wide
+kubectl get deployments,cronjobs -o wide
+```
+
+### 6. Dostop do storitev in testiranje
+Za pravilno delovanje je potrebno ročno dodati naslednje vrstice v datoteko `C:\Windows\System32\drivers\etc\hosts`:
+
+```
+127.0.0.1 users.localhost companies-filter.localhost companies-sync.localhost arso-service.localhost
+```
+Primer URL-ja za testiranje (če so domene ustrezno konfigurirane): http://companies-filter.localhost:30080/health
+
+Prav tako je možno uporabiti `kubectl port-forward` za neposreden dostop do storitev:
+```bash
+# RabbitMQ dashboard: http://localhost:15672
+kubectl port-forward svc/rabbitmq 15672:15672
+# GraphQL UI: http://localhost:8000/graphql
+kubectl port-forward svc/users 8000:80
+```
 
 ## Frontend
 
