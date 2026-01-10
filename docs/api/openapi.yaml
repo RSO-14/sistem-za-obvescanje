@@ -1,0 +1,1434 @@
+openapi: 3.0.3
+info:
+  title: sistem-za-obvescanje - Unified API
+  version: 1.0.0
+  description: Unified OpenAPI specification for all available API endpoints in the
+    repository. This file aggregates endpoints from multiple microservices (users,
+    arso-service, companies-sync, companies-filter)
+servers:
+- url: http://34.77.25.197
+tags:
+- name: users
+  description: Service for user management, authentication, and user preferences.
+- name: arso-service
+  description: API for accessing stored weather warnings and alerts from ARSO.
+- name: companies-sync
+  description: Service for managing organization events and on-call personnel.
+- name: companies-filter
+  description: Read-only service that aggregates and filters events for users.
+paths:
+  /arso-service/health:
+    get:
+      tags:
+      - arso-service
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                ok:
+                  value:
+                    status: ok
+      operationId: arsoHealth
+      description: Returns `arso-service` service health status.
+  /companies-filter/health:
+    get:
+      tags:
+      - companies-filter
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                ok:
+                  value:
+                    status: ok
+      operationId: companiesFilterHealth
+      description: Returns `companies-filter` service health status.
+  /companies/health:
+    get:
+      tags:
+      - companies-sync
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                ok:
+                  value:
+                    status: ok
+      operationId: companiesSyncHealth
+      description: Returns `companies-sync` service health status.
+  /users/health:
+    get:
+      tags:
+      - users
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                ok:
+                  value:
+                    status: ok
+      operationId: usersHealth
+      description: Returns `users` service health status.
+  /users/graphql:
+    post:
+      tags:
+      - users
+      summary: GraphQL endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphQLRequest'
+            examples:
+              register_success:
+                summary: Register (success)
+                value:
+                  query: "mutation {\n  register(input: {\n    email: \"test@gmail.com\"\
+                    \n    password: \"Password123\"\n    address: \"Večna pot 113,\
+                    \ 1000 Ljubljana\"\n    region: [\"South-West\"]\n    alerts:\
+                    \ [[\"South-West\", \"Severe\", \"Moderate\"]],\n    phoneNumber:\
+                    \ \"049459249\",\n    role: \"public\"\n  }) {\n    token\n  \
+                    \  user {\n      id\n      email\n      address\n      region\n\
+                    \      alerts\n      phoneNumber\n      role\n      createdAt\n\
+                    \    }\n  }\n}"
+              register_email_exists:
+                summary: Register (email already exists)
+                value:
+                  query: "mutation {\n  register(input: {\n    email: \"test@gmail.com\"\
+                    \n    password: \"Password123\"\n    address: \"Večna pot 113,\
+                    \ 1000 Ljubljana\"\n    region: [\"South-West\"]\n    alerts:\
+                    \ [[\"South-West\", \"Severe\", \"Moderate\"]],\n    phoneNumber:\
+                    \ \"049459249\",\n    role: \"public\"\n  }) {\n    token\n  \
+                    \  user {\n      id\n      email\n      address\n      region\n\
+                    \      alerts\n      phoneNumber\n      role\n      createdAt\n\
+                    \    }\n  }\n}"
+              register_missing_password:
+                summary: Register (missing password)
+                value:
+                  query: "mutation {\n  register(input: {\n    email: \"test@gmail.com\"\
+                    \n    address: \"Večna pot 113, 1000 Ljubljana\"\n    region:\
+                    \ [\"South-West\"]\n    alerts: [[\"South-West\", \"Severe\",\
+                    \ \"Moderate\"]],\n    phoneNumber: \"049459249\"\n    role: \"\
+                    public\"\n  }) {\n    token\n    user {\n      id\n      email\n\
+                    \      address\n      region\n      alerts\n      phoneNumber\n\
+                    \      role\n      createdAt\n    }\n  }\n}"
+              login_success:
+                summary: Login (success)
+                value:
+                  query: "mutation {\n  login(input: {email: \"test@gmail.com\", password:\
+                    \ \"Password123\"}) {token}\n}"
+              login_invalid_credentials:
+                summary: Login (invalid credentials)
+                value:
+                  query: "mutation {\n  login(input: {email: \"\", password: \"\"\
+                    }) {token}\n}"
+              me_minimal:
+                summary: Me (frontend minimal query)
+                value:
+                  query: query Me { me { id } }
+              user_by_id_found:
+                summary: User by id (found)
+                value:
+                  query: "query MyQuery {\n  user(id: \"1\") {\n     id\n     email\n\
+                    \     phoneNumber\n     region\n     alerts\n     role\n  }\n}"
+              user_by_id_not_found:
+                summary: User by id (not found)
+                value:
+                  query: "query MyQuery {\n  user(id: \"100\") {\n     id\n     email\n\
+                    \     phoneNumber\n     region\n     alerts\n     role\n  }\n}"
+              user_by_email_found:
+                summary: User by email (found)
+                value:
+                  query: "query MyQuery {\n  userByEmail(email: \"test@gmail.com\"\
+                    ) {\n    id\n    email\n    phoneNumber\n    region\n    alerts\n\
+                    \    role\n  }\n}"
+              user_by_email_not_found:
+                summary: User by email (not found)
+                value:
+                  query: "query MyQuery {\n  userByEmail(email: \"@gmail.com\") {\n\
+                    \    id\n    email\n    phoneNumber\n    region\n    alerts\n\
+                    \    role\n  }\n}"
+              users_by_company_alert_found:
+                summary: Users by company alert (matches)
+                value:
+                  query: "query MyQuery {\n  usersByCompanyAlert(company: \"public\"\
+                    , level: \"Severe\", region: \"South-West\") {\n    id\n    email\n\
+                    \  }\n}"
+              users_by_company_alert_empty:
+                summary: Users by company alert (no matches)
+                value:
+                  query: "query MyQuery {\n  usersByCompanyAlert(company: \"public\"\
+                    , level: \"xx\", region: \"South-West\") {\n    id\n    email\n\
+                    \  }\n}"
+      responses:
+        '200':
+          description: GraphQL response (data and/or errors).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLResponse'
+              examples:
+                register_success:
+                  summary: Register (success)
+                  value:
+                    data:
+                      register:
+                        token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMyIsImV4cCI6MTc2ODY3NjYzMn0.qhfHLGvY7SCWuF1LhEQJEb2XrBee16WThaL-vbVBye0
+                        user:
+                          id: '1'
+                          email: test@gmail.com
+                          address: Večna pot 113, 1000 Ljubljana
+                          region:
+                          - South-West
+                          alerts:
+                          - - South-West
+                            - Severe
+                            - Moderate
+                          phoneNumber: 049459249
+                          role: public
+                          createdAt: '2026-01-10T19:03:52.231722'
+                register_email_exists:
+                  summary: Register (email already exists)
+                  value:
+                    data: null
+                    errors:
+                    - message: Email already exists
+                      locations:
+                      - line: 2
+                        column: 3
+                      path:
+                      - register
+                register_missing_password:
+                  summary: Register (missing password)
+                  value:
+                    data: null
+                    errors:
+                    - message: Field 'UserInput.password' of required type 'String!'
+                        was not provided.
+                      locations:
+                      - line: 2
+                        column: 19
+                login_success:
+                  summary: Login (success)
+                  value:
+                    data:
+                      login:
+                        token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMyIsImV4cCI6MTc2ODY3NjYzMn0.qhfHLGvY7SCWuF1LhEQJEb2XrBee16WThaL-vbVBye0
+                login_invalid_credentials:
+                  summary: Login (invalid credentials)
+                  value:
+                    data: null
+                    errors:
+                    - message: Invalid credentials
+                      locations:
+                      - line: 2
+                        column: 3
+                      path:
+                      - login
+                me_minimal:
+                  summary: Me (frontend minimal query)
+                  value:
+                    data:
+                      me:
+                        id: '1'
+                user_by_id_found:
+                  summary: User by id (found)
+                  value:
+                    data:
+                      user:
+                        id: '1'
+                        email: test@gmail.com
+                        phoneNumber: 049459249
+                        region:
+                        - South-West
+                        alerts:
+                        - - South-West
+                          - Severe
+                          - Moderate
+                        role: public
+                user_by_id_not_found:
+                  summary: User by id (not found)
+                  value:
+                    data:
+                      user: null
+                user_by_email_found:
+                  summary: User by email (found)
+                  value:
+                    data:
+                      userByEmail:
+                        id: '1'
+                        email: test@gmail.com
+                        phoneNumber: 049459249
+                        region:
+                        - South-West
+                        alerts:
+                        - - South-West
+                          - Severe
+                          - Moderate
+                        role: public
+                user_by_email_not_found:
+                  summary: User by email (null)
+                  value:
+                    data:
+                      userByEmail: null
+                users_by_company_alert_found:
+                  summary: Users by company alert (matches)
+                  value:
+                    data:
+                      usersByCompanyAlert:
+                      - id: '1'
+                        email: test@gmail.com
+                      - id: '2'
+                        email: test2@gmail.com
+                users_by_company_alert_empty:
+                  summary: Users by company alert (empty list)
+                  value:
+                    data:
+                      usersByCompanyAlert: []
+      operationId: usersGraphQL
+      description: 'Single GraphQL endpoint serving all user-related queries and mutations.
+
+        All clients use HTTP POST with JSON body containing a `query` string.
+
+        Used by companies-filter (graphql_client.py, notifications.py) and the frontend.'
+  /arso-service/events/active:
+    get:
+      tags:
+      - arso-service
+      summary: Get active ARSO alert events (expires >= now)
+      parameters:
+      - name: organization_name
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - public
+        description: Required placeholder parameter. Use `public` for ARSO data.
+        example: public
+      - name: areas
+        in: query
+        required: true
+        schema:
+          type: string
+        description: 'Comma-separated list of areas. Only the following area names
+          have data: South-West, Central, South-East, North-East, North-West.'
+        example: South-West, Central
+      responses:
+        '200':
+          description: List of active alert events for the provided area (areas supports
+            multiple values).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertInfoRow'
+              examples:
+                example:
+                  value:
+                  - id: 3408
+                    alert_identifier: 2.49.0.0.705.0.SI.260108072400.0080101
+                    language: en-GB
+                    event: 1; wind
+                    effective: '2026-01-08T06:11:00+00:00'
+                    onset: '2026-01-07T23:00:00+00:00'
+                    expires: '2026-01-12T22:59:00+00:00'
+                    severity: Minor
+                    urgency: Future
+                    certainty: Likely
+                    headline: Minor Wind Warning (Degree 1/4) - Slovenia / South-West
+                    description: '  '
+                    instruction: null
+                    created_at: '2026-01-08T20:15:01.253931+00:00'
+                    area: South-West
+                  - id: 3410
+                    alert_identifier: 2.49.0.0.705.0.SI.260108072400.0080101
+                    language: en-GB
+                    event: 10; rain
+                    effective: '2026-01-08T06:11:00+00:00'
+                    onset: '2026-01-07T23:00:00+00:00'
+                    expires: '2026-01-12T22:59:00+00:00'
+                    severity: Minor
+                    urgency: Future
+                    certainty: Likely
+                    headline: Minor Rain Warning (Degree 1/4) - Slovenia / South-West
+                    description: '  '
+                    instruction: null
+                    created_at: '2026-01-08T20:15:01.287147+00:00'
+                    area: South-West
+                  - id: 3470
+                    alert_identifier: 2.49.0.0.705.0.SI.260108072400.0090101
+                    language: en-GB
+                    event: 1; wind
+                    effective: '2026-01-08T06:11:00+00:00'
+                    onset: '2026-01-07T23:00:00+00:00'
+                    expires: '2026-01-12T22:59:00+00:00'
+                    severity: Minor
+                    urgency: Future
+                    certainty: Likely
+                    headline: Minor Wind Warning (Degree 1/4) - Slovenia / Central
+                    description: '  '
+                    instruction: null
+                    created_at: '2026-01-08T20:15:05.879419+00:00'
+                    area: Central
+        '422':
+          description: Validation Error (FastAPI) - missing/invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+              examples:
+                missingParams:
+                  summary: Missing required query parameters
+                  value:
+                    detail:
+                    - type: missing
+                      loc:
+                      - query
+                      - organization_name
+                      msg: Field required
+                      input: null
+                    - type: missing
+                      loc:
+                      - query
+                      - areas
+                      msg: Field required
+                      input: null
+      operationId: getActiveEvents
+      description: 'Returns active ARSO alert rows from database table `alert_info`
+        for the provided area(s).
+
+
+        This endpoint is typically called in two ways:
+
+        - Directly by clients querying ARSO data (use `organization_name=public`).
+
+        - Indirectly via companies-filter, which proxies requests based on the user''s
+        role.
+
+
+        `organization_name` is required by the API but is not used in filtering logic.
+
+        `areas` is a comma-seperated list of areas.
+
+        Only rows with `expires >= NOW()` are returned.'
+  /companies-filter/events/{user_id}:
+    get:
+      tags:
+      - companies-filter
+      summary: Get relevant active events for a user
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+        example: '6'
+      responses:
+        '200':
+          description: List of events for the user (may be empty).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/AlertInfoRow'
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/OrganizationEventRow'
+              examples:
+                public_user_arso:
+                  summary: Public user (organization_name=public) → ARSO data filtered
+                    by region only
+                  value:
+                  - id: 3408
+                    alert_identifier: 2.49.0.0.705.0.SI.260108072400.0080101
+                    language: en-GB
+                    event: 1; wind
+                    effective: '2026-01-08T06:11:00Z'
+                    onset: '2026-01-07T23:00:00Z'
+                    expires: '2026-01-12T22:59:00Z'
+                    severity: Minor
+                    urgency: Future
+                    certainty: Likely
+                    headline: Minor Wind Warning (Degree 1/4) - Slovenia / South-West
+                    description: '  '
+                    instruction: null
+                    created_at: '2026-01-08T20:15:01.253931Z'
+                    area: South-West
+                organization_user_rco:
+                  summary: Organization user (e.g., user_id=6, organization=RCO) →
+                    organization events filtered by region and user severity
+                  value:
+                  - id: 1
+                    type: Civil Protection Alert
+                    area: South-West
+                    headline: Chemical Spill Near Industrial Zone
+                    description: A hazardous chemical spill has been reported in an
+                      industrial facility. Emergency services are on site and the
+                      situation is being monitored.
+                    instruction: Residents are advised to close windows and doors,
+                      avoid the affected area, and follow instructions from Civil
+                      Protection and Fire Services.
+                    effective: '2026-01-10T10:15:00+00:00'
+                    expires: '2026-01-12T18:00:00+00:00'
+                    severity: Minor
+                    urgency: Immediate
+                    created_at: '2026-01-10T12:54:06.043500+00:00'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: companiesFilterGetEventsForUser
+      description: 'Fetches user profile via GraphQL (users service) and then proxies
+        the request to the correct upstream service:
+
+        - If the user''s role is `public`, it calls arso-service `/events/active`
+        using `organization_name=public`.
+
+        - Otherwise, it calls companies-sync `/events/active` using `organization_name=<user
+        role>`.
+
+
+        `areas` is built from the user''s `region` list (comma-separated). If the
+        upstream returns a non-200 status, this API returns an empty list.
+
+        If the user does not exist (GraphQL lookup fails), the service returns an
+        Internal Server Error (500).
+
+
+        Filtering behavior:
+
+        - For organizational users, the upstream service filters results by both area
+        and the user''s severity/role settings.
+
+        - For public users (ARSO), results are filtered only by area (region) and
+        not by severity.'
+  /companies/events:
+    post:
+      tags:
+      - companies-sync
+      summary: Receive events payload for an organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organization_name:
+                  type: string
+                events:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Event'
+              required:
+              - organization_name
+              - events
+            examples:
+              ingest_success:
+                summary: Ingest events (success)
+                value:
+                  organization_name: RCO
+                  events:
+                  - type: Civil Protection Alert
+                    area: South-West
+                    headline: Chemical Spill Near Industrial Zone
+                    description: A hazardous chemical spill has been reported in an
+                      industrial facility. Emergency services are on site and the
+                      situation is being monitored.
+                    instruction: Residents are advised to close windows and doors,
+                      avoid the affected area, and follow instructions from Civil
+                      Protection and Fire Services.
+                    effective: '2026-01-10T10:15:00Z'
+                    expires: '2026-01-12T18:00:00Z'
+                    severity: Minor
+                    urgency: Immediate
+                  - type: Emergency Response Update
+                    area: Central
+                    headline: Forest Fire Contained
+                    description: Firefighters have successfully contained a forest
+                      fire. Cooling and monitoring of the area are ongoing.
+                    instruction: null
+                    effective: '2026-01-09T08:00:00Z'
+                    expires: '2026-01-09T16:00:00Z'
+                    severity: Moderate
+                    urgency: Past
+                  - type: Civil Protection Alert
+                    area: North-East
+                    headline: Flood Risk Due to Heavy Rainfall
+                    description: Intense rainfall has caused rivers and streams to
+                      rise rapidly. Local flooding is possible in low-lying areas
+                      and near riverbanks.
+                    instruction: Citizens are advised to monitor official announcements,
+                      avoid flooded roads, and prepare for possible evacuation if
+                      instructed by authorities.
+                    effective: '2026-01-11T06:00:00Z'
+                    expires: '2026-01-13T12:00:00Z'
+                    severity: Moderate
+                    urgency: Expected
+              missing_organization_name:
+                summary: Ingest events (missing organization_name)
+                value:
+                  events:
+                  - type: Civil Protection Alert
+                    area: South-West
+                    headline: Chemical Spill Near Industrial Zone
+                    description: A hazardous chemical spill has been reported in an
+                      industrial facility. Emergency services are on site and the
+                      situation is being monitored.
+                    instruction: Residents are advised to close windows and doors,
+                      avoid the affected area, and follow instructions from Civil
+                      Protection and Fire Services.
+                    effective: '2026-01-10T10:15:00Z'
+                    expires: '2026-01-12T18:00:00Z'
+                    severity: Minor
+                    urgency: Immediate
+      responses:
+        '200':
+          description: Insert results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventInsertResponse'
+              examples:
+                ingest_result:
+                  summary: Ingest result (inserted + publish flags)
+                  value:
+                    organization: RCO
+                    results:
+                    - headline: Chemical Spill Near Industrial Zone
+                      status: inserted
+                      publish: true
+                    - headline: Forest Fire Contained
+                      status: inserted
+                      publish: false
+                    - headline: Flood Risk Due to Heavy Rainfall
+                      status: inserted
+                      publish: true
+        '400':
+          description: Bad Request - missing organization_name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                - detail
+                additionalProperties: false
+              examples:
+                missing_organization_name:
+                  summary: Missing organization_name in request body
+                  value:
+                    detail: Missing organization_name
+      operationId: ingestEvents
+      description: 'Ingest a batch of events for the given organization.
+        Required event fields: type, area, headline, effective, expires.
+        The publish field in the response indicates whether the event was successfully published to the RabbitMQ queue for further processing and notification delivery.'
+  /companies/organizations:
+    post:
+      tags:
+      - companies-sync
+      summary: Create organization
+      parameters:
+      - name: name
+        in: query
+        schema:
+          type: string
+        required: true
+        description: Organization name.
+      responses:
+        '200':
+          description: Create organization result (inserted or already exists).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationCreateResponse'
+              examples:
+                inserted:
+                  summary: Organization created (inserted)
+                  value:
+                    status: inserted
+                    organization_id: 019ba9b8-ea5d-71e3-ae4c-10ee6d198d2b
+                    message: Organization successfully created.
+                exists:
+                  summary: Organization already existed (no new insert)
+                  value:
+                    status: exists
+                    organization_id: 019ba7f4-8ed9-7a60-a002-2b117f4b06ae
+                    message: Organization already existed. No new insert.
+        '422':
+          description: Validation Error (FastAPI) - missing/invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+              examples:
+                missing_name:
+                  summary: Missing required query parameter `name`
+                  value:
+                    detail:
+                    - type: missing
+                      loc:
+                      - query
+                      - name
+                      msg: Field required
+                      input: null
+      operationId: createOrganization
+  /companies/organizations/{org_name}/oncall:
+    post:
+      tags:
+      - companies-sync
+      summary: Add on-call schedule for organization
+      parameters:
+      - name: org_name
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                on_call:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/OnCallEntry'
+            examples:
+              inserted:
+                summary: Insert new on-call entry
+                value:
+                  on_call:
+                  - on_call_email: test@rco.com
+                    on_call_from: '2026-01-01T08:00:00Z'
+                    on_call_to: '2026-01-31T16:00:00Z'
+                    levels:
+                    - Moderate
+                    areas:
+                    - Central, North-East
+              exists:
+                summary: Entry already exists (no new insert)
+                value:
+                  on_call:
+                  - on_call_email: test@rco.com
+                    on_call_from: '2026-01-01T08:00:00Z'
+                    on_call_to: '2026-01-31T16:00:00Z'
+                    levels:
+                    - Moderate
+                    areas:
+                    - Central
+                    - North-East
+              missing_on_call_email_key:
+                summary: Payload missing 'on_call_email' field
+                value:
+                  on_call:
+                  - on_call_from: '2026-01-01T08:00:00Z'
+                    on_call_to: '2026-01-31T16:00:00Z'
+                    levels:
+                    - Moderate
+                    areas:
+                    - Central
+                    - North-East
+      responses:
+        '200':
+          description: Insert results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnCallInsertResponse'
+              examples:
+                inserted:
+                  summary: Inserted
+                  value:
+                    organization_id: 019ba7f4-8ed9-7a60-a002-2b117f4b06ae
+                    results:
+                    - email: test@rco.com
+                      status: inserted
+                exists:
+                  summary: Already exists
+                  value:
+                    organization_id: 019ba7f4-8ed9-7a60-a002-2b117f4b06ae
+                    results:
+                    - email: test@rco.com
+                      status: exists
+                missing_on_call_email_key:
+                  summary: Error result when 'on_call_email' key is missing in payload
+                  value:
+                    organization_id: 019ba7f4-8ed9-7a60-a002-2b117f4b06ae
+                    results:
+                    - status: error
+                      message: '''on_call_email'''
+        '404':
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                - detail
+                additionalProperties: false
+              examples:
+                organization_not_found:
+                  summary: Organization not found
+                  value:
+                    detail: Organization not found
+      description: 'Add one or more on-call entries for the organization.
+
+
+        Required fields per entry: on_call_email, on_call_from, on_call_to, levels,
+        areas.
+
+
+        Notes: `levels` is a list of severity levels. `areas` is a list of area strings.'
+  /companies/oncall/active:
+    get:
+      tags:
+      - companies-sync
+      summary: Get active on-call contacts for area
+      parameters:
+      - name: organization_name
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: area
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Array of active on-call entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActiveOnCallEntry'
+              examples:
+                found:
+                  summary: Active on-call contact found
+                  value:
+                  - email: test@rco.com
+                    levels:
+                    - Moderate
+        '404':
+          description: Organization not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                required:
+                - detail
+                additionalProperties: false
+              examples:
+                organization_not_found:
+                  summary: Organization not found
+                  value:
+                    detail: Organization not found
+        '422':
+          description: Validation Error (FastAPI) - missing/invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+              examples:
+                missing_area:
+                  summary: Missing required query parameter `area`
+                  value:
+                    detail:
+                    - type: missing
+                      loc:
+                      - query
+                      - area
+                      msg: Field required
+                      input: null
+      operationId: getActiveOnCall
+  /companies/events/active:
+    get:
+      tags:
+      - companies-sync
+      summary: Get active organization events for areas
+      description: Returns active events for the given organization and comma-separated
+        list of areas (query parameter `areas`). If no active events exist, returns
+        an empty list.
+      operationId: getActiveCompanyEvents
+      parameters:
+      - name: organization_name
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Organization name.
+      - name: areas
+        in: query
+        required: true
+        schema:
+          type: string
+        description: Comma-separated list of areas (e.g., "South-West, Central").
+        example: South-West
+      responses:
+        '200':
+          description: List of active events (may be empty).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationEventRow'
+              examples:
+                empty:
+                  summary: No active events
+                  value: []
+                found:
+                  summary: Active events found
+                  value:
+                  - id: 1
+                    type: Civil Protection Alert
+                    area: South-West
+                    headline: Chemical Spill Near Industrial Zone
+                    description: A hazardous chemical spill has been reported in an
+                      industrial facility. Emergency services are on site and the
+                      situation is being monitored.
+                    instruction: Residents are advised to close windows and doors,
+                      avoid the affected area, and follow instructions from Civil
+                      Protection and Fire Services.
+                    effective: '2026-01-10T10:15:00+00:00'
+                    expires: '2026-01-12T18:00:00+00:00'
+                    severity: Minor
+                    urgency: Immediate
+                    created_at: '2026-01-10T20:55:54.663225+00:00'
+                  - id: 2
+                    type: Civil Protection Alert
+                    area: North-East
+                    headline: Flood Risk Due to Heavy Rainfall
+                    description: Intense rainfall has caused rivers and streams to
+                      rise rapidly. Local flooding is possible in low-lying areas
+                      and near riverbanks.
+                    instruction: Citizens are advised to monitor official announcements,
+                      avoid flooded roads, and prepare for possible evacuation if
+                      instructed by authorities.
+                    effective: '2026-01-11T06:00:00+00:00'
+                    expires: '2026-01-13T12:00:00+00:00'
+                    severity: Moderate
+                    urgency: Expected
+                    created_at: '2026-01-10T20:55:54.712338+00:00'
+        '404':
+          description: Organization not found
+          content:
+            application/json:
+              example:
+                detail: Organization not found
+        '422':
+          description: Validation Error (FastAPI) - missing/invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+              examples:
+                missing_areas:
+                  summary: Missing required query parameter `areas`
+                  value:
+                    detail:
+                    - type: missing
+                      loc:
+                      - query
+                      - areas
+                      msg: Field required
+                      input: null
+components:
+  schemas:
+    Event:
+      type: object
+      properties:
+        type:
+          type: string
+        area:
+          type: string
+        headline:
+          type: string
+        description:
+          type: string
+          nullable: true
+        instruction:
+          type: string
+          nullable: true
+        effective:
+          type: string
+          format: date-time
+        expires:
+          type: string
+          format: date-time
+        severity:
+          type: string
+          nullable: true
+        urgency:
+          type: string
+          nullable: true
+      required:
+      - type
+      - area
+      - headline
+      - effective
+      - expires
+      description: 'Event payload stored for an organization. Required fields: type,
+        area, headline, effective, expires.'
+    OnCallEntry:
+      type: object
+      properties:
+        on_call_email:
+          type: string
+        on_call_from:
+          type: string
+          format: date-time
+        on_call_to:
+          type: string
+          format: date-time
+        levels:
+          type: array
+          items:
+            type: string
+        areas:
+          type: array
+          items:
+            type: string
+      required:
+      - on_call_email
+      - on_call_from
+      - on_call_to
+      - levels
+      - areas
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - error
+      - message
+      properties:
+        error:
+          type: string
+          example: VALIDATION_ERROR
+          description: Short error code (e.g. VALIDATION_ERROR)
+        message:
+          type: string
+          example: Parameter 'name' is required.
+          description: Human-readable error message
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional details (optional)
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - status
+      properties:
+        status:
+          type: string
+          example: ok
+    OrganizationCreateResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - status
+      - organization_id
+      - message
+      properties:
+        status:
+          type: string
+          enum:
+          - inserted
+          - exists
+          description: Result of the create operation.
+          example: inserted
+        organization_id:
+          type: string
+          description: Organization identifier (UUID).
+          example: 019ba9b8-ea5d-71e3-ae4c-10ee6d198d2b
+        message:
+          type: string
+          description: Human-readable message.
+          example: Organization successfully created.
+    EventInsertResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - organization
+      - results
+      properties:
+        organization:
+          type: string
+          example: Acme
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - headline
+            - status
+            - publish
+            properties:
+              headline:
+                type: string
+                example: Floods - Ljubljana
+              status:
+                type: string
+                enum:
+                - inserted
+                - exists
+                - skipped
+                - error
+                example: inserted
+                description: Insert status for this event in the database.
+              publish:
+                type: boolean
+                example: true
+                description: Whether the event was published to RabbitMQ for notifications
+                  (typically true for future/active events).
+              reason:
+                type: string
+                nullable: true
+                example: null
+                description: Optional reason when the event was not inserted or not
+                  published.
+    AlertInfoRow:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - alert_identifier
+      - language
+      - event
+      - effective
+      - onset
+      - expires
+      - severity
+      - urgency
+      - certainty
+      - headline
+      - description
+      - created_at
+      - area
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 3408
+        alert_identifier:
+          type: string
+          example: 2.49.0.0.705.0.SI.260108072400.0080101
+        language:
+          type: string
+          example: en-GB
+        event:
+          type: string
+          description: Event code + label (as stored in DB).
+          example: 1; wind
+        effective:
+          type: string
+          format: date-time
+          example: '2026-01-08T06:11:00+00:00'
+        onset:
+          type: string
+          format: date-time
+          example: '2026-01-07T23:00:00+00:00'
+        expires:
+          type: string
+          format: date-time
+          example: '2026-01-12T22:59:00+00:00'
+        severity:
+          type: string
+          example: Minor
+        urgency:
+          type: string
+          example: Future
+        certainty:
+          type: string
+          example: Likely
+        headline:
+          type: string
+          example: Minor Wind Warning (Degree 1/4) - Slovenia / South-West
+        description:
+          type: string
+          nullable: true
+          example: '  '
+        instruction:
+          type: string
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-01-08T20:15:01.253931+00:00'
+        area:
+          type: string
+          example: South-West
+    HTTPValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          title: Detail
+      title: HTTPValidationError
+    ValidationError:
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      properties:
+        loc:
+          type: array
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          nullable: true
+          title: Input
+          description: Input value (may be null).
+      title: ValidationError
+    OrganizationEventRow:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - type
+      - area
+      - headline
+      - effective
+      - expires
+      - created_at
+      properties:
+        id:
+          type: integer
+          format: int32
+          example: 123
+        type:
+          type: string
+          example: fire
+        area:
+          type: string
+          example: Ljubljana
+        headline:
+          type: string
+          example: Fire in building
+        description:
+          type: string
+          nullable: true
+          example: Short description
+        instruction:
+          type: string
+          nullable: true
+          example: Evacuate the area
+        effective:
+          type: string
+          format: date-time
+          example: '2026-01-10T12:00:00Z'
+        expires:
+          type: string
+          format: date-time
+          example: '2026-01-10T18:00:00Z'
+        severity:
+          type: string
+          nullable: true
+          example: High
+        urgency:
+          type: string
+          nullable: true
+          example: Immediate
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-01-10T12:05:00Z'
+      description: Row returned from companies-sync organization events table (<org_uuid>_organization_events).
+    GraphQLRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - query
+      properties:
+        query:
+          type: string
+          description: GraphQL query or mutation string.
+        variables:
+          type: object
+          description: GraphQL variables map.
+          additionalProperties: true
+        operationName:
+          type: string
+          nullable: true
+    GraphQLError:
+      type: object
+      additionalProperties: true
+      properties:
+        message:
+          type: string
+        locations:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        path:
+          type: array
+          items: {}
+    GraphQLResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        data:
+          type: object
+          nullable: true
+          additionalProperties: true
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphQLError'
+    ActiveOnCallEntry:
+      type: object
+      additionalProperties: false
+      required:
+      - email
+      - levels
+      properties:
+        email:
+          type: string
+          format: email
+          example: call@example.com
+        levels:
+          type: array
+          items:
+            type: string
+          example:
+          - Severe
+          description: List of severity levels covered by this on-call contact.
+      description: Active on-call contact entry.
+    OnCallInsertResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - organization_id
+      - results
+      properties:
+        organization_id:
+          type: string
+          description: Organization identifier (UUID).
+          example: 019ba7f4-8ed9-7a60-a002-2b117f4b06ae
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+            - email
+            - status
+            properties:
+              email:
+                type: string
+                example: test@rco.com
+              status:
+                type: string
+                enum:
+                - inserted
+                - exists
+                - error
+                example: inserted
+              reason:
+                type: string
+                nullable: true
+                description: Optional reason when status is error.
+                example: null
+  responses:
+    BadRequest:
+      description: Bad request (validation error / missing parameters)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missingParam:
+              summary: Missing parameter
+              value:
+                error: VALIDATION_ERROR
+                message: Parameter 'name' is required.
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            notFound:
+              summary: Not found
+              value:
+                error: NOT_FOUND
+                message: The requested resource does not exist.
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            serverError:
+              summary: Server error
+              value:
+                error: INTERNAL_ERROR
+                message: An unexpected error occurred.
+  parameters:
+    OrgNamePath:
+      name: org_name
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Organization name (same as in URL)
+    UserIdPath:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: User ID
