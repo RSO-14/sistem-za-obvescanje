@@ -97,6 +97,14 @@ Backend sistema je zasnovan kot mikrostoritvena arhitektura, kjer je vsaka stori
 | **Google Cloud Secrets** | Varna hramba API ključev in konfiguracije |
 | **Brevo API** | Pošiljanje e-poštnih obvestil |
 
+### 2.5 API dokumentacija
+
+Dokumentacija API-jev (OpenAPI/Swagger) je dostopna na naslednjem naslovu: **https://rso-14.github.io/sistem-za-obvescanje/api/**
+
+Dokumentacija zajema vse mikrostoritve (users, arso-service, companies-sync, companies-filter) z opisom končnih točk, parametrov, primeri zahtevkov/odgovorov in napak. Funkcija *Try it out* je izklopljena, saj je prikaz namenjen pregledovanju specifikacije, ne izvajanju klicev.
+
+> Opomba: ista dokumentacija je na voljo v repozitoriju na poti `docs/api/index.html` (datoteka `docs/api/openapi.yaml`).
+
 ## 3. Uporabljene tehnologije
 
 Sistem je zasnovan v skladu z načeli cloud-native arhitekture. Spodaj so navedene ključne uporabljene tehnologije.
