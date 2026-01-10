@@ -8,7 +8,29 @@ logging.basicConfig(level=logging.INFO, force=True)
 
 USERS_SERVICE_URL = os.getenv("USERS_SERVICE_URL")
 COMPANIES_SYNC_URL = os.getenv("COMPANIES_SYNC_URL")
+NOTIFICATION_FUNCTION_URL = os.getenv("NOTIFICATION_FUNCTION_URL")
+NOTIFICATION_FUNCTION_TOKEN = os.getenv("NOTIFICATION_FUNCTION_TOKEN")
 
+def trigger_notification_function(payload: dict) -> None:
+    if not NOTIFICATION_FUNCTION_URL:
+        raise RuntimeError("Missing NOTIFICATION_FUNCTION_URL env var")
+
+    headers = {"Content-Type": "application/json"}
+    if NOTIFICATION_FUNCTION_TOKEN:
+        headers["Authorization"] = f"Bearer {NOTIFICATION_FUNCTION_TOKEN}"
+
+    resp = requests.post(
+        NOTIFICATION_FUNCTION_URL,
+        json=payload,
+        headers=headers,
+        timeout=10
+    )
+
+    if resp.status_code >= 400:
+        logging.error(f"[NOTIF → FUNCTION] status={resp.status_code} body={resp.text}")
+        resp.raise_for_status()
+    logging.info("[NOTIF → FUNCTION] Triggered notification-function successfully.")
+    
 def handle_event(event: dict, routing_key: str):
     """
     routing_key:
@@ -28,8 +50,10 @@ def handle_event(event: dict, routing_key: str):
         return
 
     try:
+        # TODO: switch when serverless function is ready
         from serverless import send_emails
         send_emails(payload)
+        # trigger_notification_function(payload)
     except Exception as e:
         logging.error(f"[SERVERLESS ERROR] {e}")
 
@@ -45,7 +69,7 @@ def graphql(query: str, variables: dict = None):
         except Exception as e:
             logging.error(f"[GRAPHQL ERROR] attempt {i+1}/3): {e}")
             time.sleep(1)
-        return None
+    return None
     
 def get_oncall_notifications(event):
     org = event["organization_name"]

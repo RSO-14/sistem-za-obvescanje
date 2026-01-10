@@ -30,6 +30,11 @@ spec:
                 secretKeyRef:
                   name: serverless-secret
                   key: BREVO_API_KEY
+            - name: NOTIFICATION_FUNCTION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: serverless-secret
+                  key: NOTIFICATION_FUNCTION_TOKEN
           livenessProbe:
             httpGet:
               path: /health
