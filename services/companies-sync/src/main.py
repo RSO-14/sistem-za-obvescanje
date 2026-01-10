@@ -8,12 +8,10 @@ from publisher import publish_event
 import logging
 import time
 from db import (
-    get_events,
     insert_organization,
     get_organization_id_by_name,
     insert_or_update_event,
     create_tables,
-    get_all_organizations,
     insert_oncall_schedule,
     get_active_oncall,
     get_active_events
@@ -49,22 +47,6 @@ def startup():
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-@app.get("/events")
-def api_get_events(
-    organization_id: Optional[int] = None,
-    organization_name: Optional[str] = None,
-    area: Optional[str] = None,
-    effective: Optional[datetime] = None,
-    expires: Optional[datetime] = None,
-    urgency: Optional[str] = None
-):
-    if organization_id is None and organization_name:
-        organization_id = get_organization_id_by_name(organization_name)
-        if organization_id is None:
-            raise HTTPException(status_code=404, detail="Organization not found")
-
-    return get_events(organization_id, area, effective, expires, urgency)
 
 @app.post("/organizations")
 def api_create_organization(name: str):
@@ -129,15 +111,6 @@ def api_receive_events(payload: dict):
         "organization": org_name,
         "results": results
     }
-
-# TODO - delete for safety reasons
-@app.get("/organizations")
-def api_get_organizations():
-    return [
-        {"organization_id": org_id, "organization_name": name}
-        for (org_id, name) in get_all_organizations()
-    ]
-
 
 @app.post("/organizations/{org_name}/oncall")
 def api_add_oncall(org_name: str, payload: dict):

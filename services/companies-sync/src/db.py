@@ -251,40 +251,6 @@ def get_organization_id_by_name(org_name: str):
         cursor.close()
         conn.close()
 
-def get_events(organization_id=None, area=None, effective=None, expires=None, urgency=None):
-    conn = get_connection()
-    cursor = conn.cursor(cursor_factory=RealDictCursor)
-
-    if not organization_id:
-        return []
-
-    try:
-        event_table_name = str(organization_id) + "_organization_events"
-        query = "SELECT * FROM {} WHERE TRUE"
-        params = []
-
-        if area:
-            query += " AND area = %s"
-            params.append(area)
-        if effective:
-            query += " AND effective >= %s"
-            params.append(effective)
-        if expires:
-            query += " AND expires <= %s"
-            params.append(expires)
-        if urgency:
-            query += " AND urgency = %s"
-            params.append(urgency)
-
-        cursor.execute(sql.SQL(query).format(sql.Identifier(event_table_name)), params)
-        return cursor.fetchall()
-    except Exception as e:
-        print(f"Error retrieving events: {e}")
-        return []
-    finally:
-        cursor.close()
-        conn.close()
-
 def get_active_events(organization_id: int, areas: list):
     conn = get_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -304,11 +270,11 @@ def get_active_events(organization_id: int, areas: list):
             params = [areas[0]]
 
         else:
-            placeholders = ",".join(["%s"] * len(areas))
+            placeholders = ",".join(["LOWER(%s)"] * len(areas))
             query = f"""
                 SELECT *
                 FROM {{}}
-                  WHERE LOWER(area) IN (LOWER({placeholders}))
+                  WHERE LOWER(area) IN ({placeholders})
                   AND expires >= NOW()
             """
             params = areas
@@ -318,19 +284,6 @@ def get_active_events(organization_id: int, areas: list):
 
     except Exception as e:
         print(f"Error retrieving events: {e}")
-        return []
-    finally:
-        cursor.close()
-        conn.close()
-
-def get_all_organizations():
-    conn = get_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT organization_id, organization_name FROM organizations ORDER BY organization_id;")
-        return cursor.fetchall()
-    except Exception as e:
-        print(f"Error fetching organizations: {e}")
         return []
     finally:
         cursor.close()
