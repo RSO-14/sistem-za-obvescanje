@@ -16,7 +16,7 @@ Backend sistema je zasnovan kot mikrostoritvena arhitektura, kjer je vsaka stori
 | **arso-service** | API za dostop do shranjenih vremenskih opozoril. |
 | **companies-sync** | Upravljanje dogodkov organizacij in dežurnih oseb. |
 | **companies-filter** | Filtriranje dogodkov in odločanje o pošiljanju obvestil. |
-| **notification-function** | Pošiljanje e-poštnih obvestil uporabnikom (serverless, Google Cloud Functions). |
+| **serverless komponenta** | Pošiljanje e-poštnih obvestil uporabnikom (serverless, Google Cloud Functions). |
 
 ### 2.2 Podrobni opis mikrostoritev
 
@@ -57,10 +57,10 @@ Backend sistema je zasnovan kot mikrostoritvena arhitektura, kjer je vsaka stori
   - Asinhrona: consumer v RabbitMQ (dogodki iz `arso-sync` in `companies-sync`)
   - Sinhrona: poizvedbe na `users`, `arso-service` in `companies-sync`
 
-### **notification-function**
+### **serverless komponenta**
 - **Odgovornost:** Pošiljanje e-poštnih obvestil končnim uporabnikom na podlagi dogodkov, ki jih posreduje storitev `companies-filter`.
-- **Izvajalno okolje:** Google Cloud Functions (serverless).
-- **API:** HTTP-trigger funkcija, namenjena internemu klicu iz backend sistema.
+- **Izvajalno okolje:** Oblačna serverless storitev.
+- **API:** HTTP sprožena storitev, namenjena internemu klicu iz backend sistema.
 - **Zunanja integracija:** Brevo (transactional email API).
 - **Konfiguracija in skrivnosti:**  
   - `BREVO_API_KEY`  
@@ -77,7 +77,7 @@ Backend sistema je zasnovan kot mikrostoritvena arhitektura, kjer je vsaka stori
 - Frontend → companies-sync (REST)
 - companies-filter → users (GraphQL)
 - companies-filter → arso-service, companies-sync (REST)
-- companies-filter → notification-function (HTTP trigger)
+- companies-filter → serverless komponenta (HTTP trigger)
 
 ### Asinhrona komunikacija (event-driven)
 - **Sporočilni sistem:** RabbitMQ
@@ -92,7 +92,7 @@ Backend sistema je zasnovan kot mikrostoritvena arhitektura, kjer je vsaka stori
 | **PostgreSQL** | Vremenska opozorila, dogodki organizacij, dežurstva |
 | **MongoDB** | Uporabniški računi in nastavitve |
 | **RabbitMQ** | Asinhrona komunikacija med mikrostoritvami |
-| **Google Cloud Secret Manager** | Varna hramba skrivnosti |
+| **Cloud Secrets Manager** | Varna hramba skrivnosti |
 | **Brevo API** | Pošiljanje e-poštnih obvestil |
 
 ### 2.5 API dokumentacija
@@ -111,12 +111,12 @@ Sistem je zasnovan v skladu z načeli cloud-native arhitekture. Spodaj so navede
 - **Podatkovna hramba:** PostgreSQL, MongoDB  
 - **Sporočilni sistem:** RabbitMQ (dogodkovno vodena komunikacija)  
 - **Kontejnerizacija:** Docker, Docker Buildx  
-- **Orkestracija:** Kubernetes, kind (lokalno okolje)  
+- **Orkestracija:** Kubernetes (lokalno: kind, oblak: GKE) 
 - **Upravljanje konfiguracije:** Okoljske spremenljivke, Kubernetes ConfigMaps in Secrets  
 - **Frontend:** Next.js (React), Tailwind CSS  
 - **CI/CD:** GitHub Actions (CI – build & push v Docker Hub), Flux CD (CD – GitOps deploy na Kubernetes)
 - **Zunanje integracije:** Javni CAP/XML vir ARSO, Brevo API  
-- **Oblačna platforma:** Google Cloud (GKE, Cloud Functions)
+- **Oblačna platforma:** Google Cloud (GKE, serverless storitve)
 
 ## 4. Struktura repozitorija
 
@@ -475,9 +475,9 @@ Za delovanje v oblačnem okolju je potrebno zagotoviti:
 - odsotnost lokalno specifičnih nastavitev (npr. kind omrežnih konfiguracij),
 - ustrezno konfiguracijo ingressa in omrežnih pravil v GKE okolju.
 
-### 8.4 Google Cloud Functions
+### 8.4 Serverless komponenta v Google Cloud
 
-Funkcija `notification-function` je implementirana kot ločena serverless funkcija in se ne izvaja znotraj Kubernetes clustra. Funkcija bere Secrets in konfiguracijo neposredno iz GCP okolja.
+`Serverless komponenta` je implementirana kot ločena strežniška (serverless) storitev v okolju Google Cloud in se ne izvaja znotraj Kubernetes clustra Konfiguracijo in skrivnosti bere neposredno iz oblačnega okolja.
 
 ## 9. Zunanje integracije
 
@@ -489,4 +489,4 @@ Vremenska opozorila se pridobivajo iz javno dostopnega CAP/XML vira Agencije RS 
 
 ### 9.2 Brevo
 
-Pošiljanje elektronskih obvestil je izvedeno prek serverless funkcije v oblačnem okolju, ki uporablja storitev Brevo kot zunanjo SaaS platformo za transakcijsko e-pošto. Komunikacija poteka prek HTTPS REST vmesnika z uporabo JSON sporočil, avtentikacija pa z API ključem, pri čemer so občutljivi podatki shranjeni v upravljanem sistemu za skrivnosti v oblačnem okolju. Funkcija se sproži asinhrono ob zaznavi relevantnih dogodkov.
+Pošiljanje elektronskih obvestil je izvedeno prek serverless komponente v oblačnem okolju, ki uporablja storitev Brevo kot zunanjo SaaS platformo za transakcijsko e-pošto. Komunikacija poteka prek HTTPS REST vmesnika z uporabo JSON sporočil, avtentikacija pa z API ključem, pri čemer so občutljivi podatki shranjeni v upravljanem sistemu za skrivnosti v oblačnem okolju. Funkcija se sproži asinhrono ob zaznavi relevantnih dogodkov.

@@ -15,7 +15,7 @@ Sistem temelji na mikrostoritveni arhitekturi z jasno ločenimi odgovornostmi po
 - **arso-service** – API za dostop do shranjenih vremenskih opozoril
 - **companies-sync** – upravljanje dogodkov organizacij in dežurnih oseb
 - **companies-filter** – filtriranje dogodkov in odločanje o pošiljanju obvestil
-- **notification-function** – pošiljanje e-poštnih obvestil (serverless, Google Cloud Functions)
+- **serverless komponenta** - pošiljanje e-poštnih obvestil uporabnikom (serverless, Google Cloud Functions)
 
 
 ### Tehnološki sklad
@@ -24,12 +24,12 @@ Sistem temelji na mikrostoritveni arhitekturi z jasno ločenimi odgovornostmi po
 - **Podatkovna hramba:** PostgreSQL, MongoDB  
 - **Sporočilni sistem:** RabbitMQ (dogodkovno vodena komunikacija)  
 - **Kontejnerizacija:** Docker, Docker Buildx  
-- **Orkestracija:** Kubernetes, kind (lokalno okolje)  
+- **Orkestracija:** Kubernetes (lokalno: kind, oblak: GKE)
 - **Upravljanje konfiguracije:** Okoljske spremenljivke, Kubernetes ConfigMaps in Secrets  
 - **Frontend:** Next.js (React), Tailwind CSS  
 - **CI/CD:** GitHub Actions (CI – build & push v Docker Hub), Flux CD (CD – GitOps deploy na Kubernetes)
 - **Zunanje integracije:** Javni CAP/XML vir ARSO, Brevo API  
-- **Oblačna platforma:** Google Cloud (GKE, Cloud Functions)
+- **Oblačna platforma:** Google Cloud (GKE, serverless storitve)
 
 
 ## Dokumentacija
