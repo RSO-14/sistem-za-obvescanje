@@ -38,8 +38,8 @@ Backend sistema je zasnovan kot mikrostoritvena arhitektura, kjer je vsaka stori
 - **Odgovornost:** Ponuja REST API za dostop do trenutno veljavnih vremenskih opozoril.
 - **Podatki:** Aktivna vremenska opozorila po regijah.
 - **API:** REST HTTP (npr. `GET /events/active`).
-- **Podatkovna baza:** PostgreSQL (samo branje).
-- **Komunikacija:** Sinhrona (REST). Storitev uporablja companies-filter`.
+- **Podatkovna baza:** PostgreSQL.
+- **Komunikacija:** Sinhrona (REST). Storitev uporablja `companies-filter`.
 
 ### **companies-sync**
 - **Odgovornost:** Upravljanje dogodkov organizacij, ki želijo obveščati svoje uporabnike oz. zaposlene (npr. zapore cest, požari, nevarne razmere).
@@ -66,8 +66,6 @@ Backend sistema je zasnovan kot mikrostoritvena arhitektura, kjer je vsaka stori
   - `BREVO_API_KEY`  
   - `SENDER_EMAIL`
   - `NOTIFICATION_FUNCTION_TOKEN`
-  
-  Vrednosti so shranjene v Google Cloud Secrets in niso del izvorne kode.
 - **Podatkovna baza:** Ne uporablja lastne baze.
 - **Komunikacija:** Asinhrona – sprožena iz `companies-filter` ob zaznavi relevantnega dogodka.
 
@@ -94,7 +92,7 @@ Backend sistema je zasnovan kot mikrostoritvena arhitektura, kjer je vsaka stori
 | **PostgreSQL** | Vremenska opozorila, dogodki organizacij, dežurstva |
 | **MongoDB** | Uporabniški računi in nastavitve |
 | **RabbitMQ** | Asinhrona komunikacija med mikrostoritvami |
-| **Google Cloud Secrets** | Varna hramba API ključev in konfiguracije |
+| **Google Cloud Secret Manager** | Varna hramba skrivnosti |
 | **Brevo API** | Pošiljanje e-poštnih obvestil |
 
 ### 2.5 API dokumentacija
@@ -116,7 +114,7 @@ Sistem je zasnovan v skladu z načeli cloud-native arhitekture. Spodaj so navede
 - **Orkestracija:** Kubernetes, kind (lokalno okolje)  
 - **Upravljanje konfiguracije:** Okoljske spremenljivke, Kubernetes ConfigMaps in Secrets  
 - **Frontend:** Next.js (React), Tailwind CSS  
-- **CI/CD:** GitHub Actions, Docker Hub  
+- **CI/CD:** GitHub Actions (CI – build & push v Docker Hub), Flux CD (CD – GitOps deploy na Kubernetes)
 - **Zunanje integracije:** Javni CAP/XML vir ARSO, Brevo API  
 - **Oblačna platforma:** Google Cloud (GKE, Cloud Functions)
 
@@ -127,9 +125,11 @@ Repozitorij projekta *sistem-za-obvescanje* je organiziran po mikrostoritvenem p
 ### 4.1 Korenska struktura
 
 - `.github/workflows/`  
-  Vsebuje definicije CI/CD procesov, implementiranih z GitHub Actions.
+  Vsebuje definicije CI procesov, implementiranih z GitHub Actions.
 - `services/`  
   Osrednji imenik, ki vsebuje vse mikrostoritve sistema.
+- `docs/`  
+  Podrobna tehnična in API dokumentacija sistema.
 - `README.md`  
   Osnovna tehnična dokumentacija projekta.
 
@@ -167,7 +167,7 @@ Vse mikrostoritve uporabljajo okoljske spremenljivke za konfiguracijo naslednjih
 ### 5.2 ConfigMaps in Secrets
 
 Nesenzitivna konfiguracija, kot so imena storitev ali parametri delovanja, je shranjena v Kubernetes ConfigMap-ih.  
-Občutljivi podatki, kot so gesla, API ključi in varnostni žetoni, so shranjeni v Kubernetes Secrets ali v oblačnem okolju v Google Cloud Secrets Managerju.
+Občutljivi podatki, kot so gesla, so shranjeni v ustreznih varnih mehanizmih platforme in niso vključeni v izvorno kodo ali repozitorij.
 
 ## 6. Kubernetes arhitektura
 
@@ -215,7 +215,7 @@ cd sistem-za-obvescanje
 
 ### 7.3 Vzpostavitev lokalnega Kubernetes clustra (kind)
 
-Vzpostavitev lokalnega Kubernetes clustra se izvede v okolju Windows z uporabo lupine PowerShell, ki se zažene v administratorskem načinu.  kolikor orodje `kind` še ni nameščeno, ga je mogoče namestiti z uporabo upravljalnika paketov `winget`:
+Vzpostavitev lokalnega Kubernetes clustra se izvede v okolju Windows z uporabo lupine PowerShell, ki se zažene v administratorskem načinu. V kolikor orodje `kind` še ni nameščeno, ga je mogoče namestiti z uporabo upravljalnika paketov `winget`:
 
 ```powershell
 winget install Kubernetes.kind
@@ -332,7 +332,7 @@ Konfiguracija aplikacije je ločena od izvorne kode in je upravljana prek Kubern
 
 `ConfigMap` vsebuje nesenzitivne konfiguracijske parametre (npr. naslove storitev, imena virov, parametre delovanja).
 
-`Secret` vsebuje občutljive podatke (gesla, API ključe). V repozitoriju so shranjene zgolj nadomestne (placeholder) vrednosti, dejanske vrednosti pa se nastavijo v ciljnem okolju (lokalno ali oblačno).
+`Secret` vsebuje občutljive podatke (npr. gesla). V repozitoriju so shranjene zgolj nadomestne (placeholder) vrednosti, dejanske vrednosti pa se nastavijo v ciljnem okolju (lokalno ali oblačno).
 
 Uveljavitev sprememb konfiguracije:
 
@@ -444,28 +444,38 @@ S tem je zaključen lokalni razvojni cikel. Nadaljnja namestitev in posodabljanj
 
 ## 8. Namestitev v Google Cloud
 
-Oblačna različica sistema se izvaja v okolju Google Kubernetes Engine (GKE), pri čemer se vse mikrostoritve in infrastruktura avtomatsko nameščajo prek CI/CD mehanizma, implementiranega z GitHub Actions.
+Oblačna različica sistema se izvaja v okolju Google Kubernetes Engine (GKE). Gradnja kontejnerskih slik poteka v okviru CI procesa z uporabo GitHub Actions, medtem ko je nameščanje v Kubernetes gručo avtomatizirano z GitOps pristopom, ki ga izvaja orodje Flux CD.
 
-### 8.1 CI/CD z GitHub Actions
+### 8.1 CI z GitHub Actions
 
-Vsaka sprememba v veji `main` sproži avtomatsko CI/CD verigo:
+Vsaka sprememba v veji `main` sproži CI verigo:
 
 - zgradi se nova Docker slika za vsako storitev,
-- slike se potisnejo v `Google Container Registry` (GCR),
-- izvede se `kubectl apply` nad manifesti na GKE clusterju.
+- slike se objavijo v Docker Hub repozitorij,
+- slike so označene z oznakama `latest` in identifikatorjem commita.
 
-CI/CD poteka iz `.github/workflows/ci.yml`, ki vključuje dostop do GCP prek service account ključa in `gcloud` nastavitev.
+CI je dfiniran v `.github/workflows/ci.yml` in uporablja Docker Buildx ter prijavo v Docker Hub prek skrivnosti v GitHub Secrets.
 
-### 8.2 Prilagoditve za deploy v GKE
+### 8.2 CD z uporabo GitOps (Flux CD)
 
-Pred deployem v oblak je potrebno zagotoviti:
+Neprekinjeno nameščanje (CD) je izvedeno z orodjem Flux CD, ki teče neposredno v Kubernetes gruči in stalno spremlja konfiguracijski repozitorij. Flux CD:
 
-- da `imagePullPolicy` v vseh manifestih ni `IfNotPresent`, temveč `Always`,
-- da se uporabljajo prave slike iz GCR (npr. `gcr.io/<project-id>/companies-filter:latest`),
-- da so GCP Secrets in ConfigMaps pravilno nastavljeni v oblačnem okolju (prek `kubectl` ali UI),
-- da `kind` specifične nastavitve niso prisotne (npr. `NodePort` porte, ki se v oblaku ne uporabljajo).
+- nadzoruje Kubernetes manifestne datoteke oziroma Helm konfiguracije v Git repozitoriju,
+- zazna spremembe (npr. nove verzije slik),
+- samodejno uskladi dejansko stanje gruče z želenim stanjem, zapisanim v Gitu.
 
-### 8.3 Google Cloud Functions
+Na ta način je nameščanje  izvedeno brez neposrednega izvajanja ukazov `kubectl apply` iz CI okolja, temveč prek GitOps mehanizma, kjer je Git vir resnice za stanje sistema.
+
+### 8.3 Prilagoditve za delovanje v GKE
+
+Za delovanje v oblačnem okolju je potrebno zagotoviti:
+
+- uporabo ustreznih Docker slik iz Docker Hub repozitorija,
+- pravilno nastavitev dostopa do skrivnosti in konfiguracije prek varnih mehanizmov platforme,
+- odsotnost lokalno specifičnih nastavitev (npr. kind omrežnih konfiguracij),
+- ustrezno konfiguracijo ingressa in omrežnih pravil v GKE okolju.
+
+### 8.4 Google Cloud Functions
 
 Funkcija `notification-function` je implementirana kot ločena serverless funkcija in se ne izvaja znotraj Kubernetes clustra. Funkcija bere Secrets in konfiguracijo neposredno iz GCP okolja.
 

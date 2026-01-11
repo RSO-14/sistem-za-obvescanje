@@ -6,10 +6,9 @@
 
 ## Arhitekturni pregled
 
-Sistem temelji na mikrostoritveni arhitekturi z jasno ločenimi odgovornostmi posameznih komponent.  
-Komunikacija med storitvami poteka prek sinhronih (REST, GraphQL) in asinhronih (event-driven) mehanizmov.
+Sistem temelji na mikrostoritveni arhitekturi z jasno ločenimi odgovornostmi posameznih komponent. Komunikacija med storitvami poteka prek sinhronih (REST, GraphQL) in asinhronih (event-driven) mehanizmov.
 
-## Mikrostoritve
+### Mikrostoritve
 
 - **users** – upravljanje uporabnikov, avtentikacije in uporabniških preferenc
 - **arso-sync** – periodičen zajem in obdelava vremenskih opozoril iz sistema ARSO
@@ -19,7 +18,7 @@ Komunikacija med storitvami poteka prek sinhronih (REST, GraphQL) in asinhronih 
 - **notification-function** – pošiljanje e-poštnih obvestil (serverless, Google Cloud Functions)
 
 
-## Tehnološki sklad
+### Tehnološki sklad
 
 - **Backend:** Python, FastAPI, Strawberry GraphQL, Uvicorn  
 - **Podatkovna hramba:** PostgreSQL, MongoDB  
@@ -28,7 +27,7 @@ Komunikacija med storitvami poteka prek sinhronih (REST, GraphQL) in asinhronih 
 - **Orkestracija:** Kubernetes, kind (lokalno okolje)  
 - **Upravljanje konfiguracije:** Okoljske spremenljivke, Kubernetes ConfigMaps in Secrets  
 - **Frontend:** Next.js (React), Tailwind CSS  
-- **CI/CD:** GitHub Actions, Docker Hub  
+- **CI/CD:** GitHub Actions (CI – build & push v Docker Hub), Flux CD (CD – GitOps deploy na Kubernetes)
 - **Zunanje integracije:** Javni CAP/XML vir ARSO, Brevo API  
 - **Oblačna platforma:** Google Cloud (GKE, Cloud Functions)
 
@@ -127,6 +126,6 @@ kubectl port-forward svc/users 8000:80
 
 ## Frontend
 
-Frontend aplikacija je implementirana kot ločen projekt in komunicira z backendom prek REST in GraphQL API-jev.
+Frontend aplikacija je implementirana kot ločen projekt in komunicira z backendom prek REST in GraphQL API-jev:
 
 🖥️ [Frontend repozitorij](https://github.com/RSO-14/so-frontend.git)
