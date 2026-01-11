@@ -61,7 +61,7 @@ Backend sistema je zasnovan kot mikrostoritvena arhitektura, kjer je vsaka stori
 - **Odgovornost:** Pošiljanje e-poštnih obvestil končnim uporabnikom na podlagi dogodkov, ki jih posreduje storitev `companies-filter`.
 - **Izvajalno okolje:** Google Cloud Functions (serverless).
 - **API:** HTTP-trigger funkcija, namenjena internemu klicu iz backend sistema.
-- **Zunanja integracija:** Brevo (SMTP / transactional email API).
+- **Zunanja integracija:** Brevo (transactional email API).
 - **Konfiguracija in skrivnosti:**  
   - `BREVO_API_KEY`  
   - `SENDER_EMAIL`
@@ -489,4 +489,4 @@ Vremenska opozorila se pridobivajo iz javno dostopnega CAP/XML vira Agencije RS 
 
 ### 9.2 Brevo
 
-Pošiljanje elektronskih obvestil je izvedeno prek serverless funkcije v oblačnem okolju, ki uporablja storitev Brevo kot zunanjo SaaS platformo za transakcijsko e-pošto. Komunikacija poteka prek HTTPS REST vmesnika z uporabo JSON sporočil, avtentikacija pa z API ključem, pri čemer so API ključ in naslov pošiljatelja shranjeni v Kubernetes Secrets. Funkcija se sproži asinhrono ob zaznavi relevantnih dogodkov.
+Pošiljanje elektronskih obvestil je izvedeno prek serverless funkcije v oblačnem okolju, ki uporablja storitev Brevo kot zunanjo SaaS platformo za transakcijsko e-pošto. Komunikacija poteka prek HTTPS REST vmesnika z uporabo JSON sporočil, avtentikacija pa z API ključem, pri čemer so občutljivi podatki shranjeni v upravljanem sistemu za skrivnosti v oblačnem okolju. Funkcija se sproži asinhrono ob zaznavi relevantnih dogodkov.
