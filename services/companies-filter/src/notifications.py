@@ -12,8 +12,9 @@ NOTIFICATION_FUNCTION_URL = os.getenv("NOTIFICATION_FUNCTION_URL")
 NOTIFICATION_FUNCTION_TOKEN = os.getenv("NOTIFICATION_FUNCTION_TOKEN")
 
 def trigger_notification_function(payload: dict) -> None:
-    if not NOTIFICATION_FUNCTION_URL:
-        raise RuntimeError("Missing NOTIFICATION_FUNCTION_URL env var")
+    if not NOTIFICATION_FUNCTION_URL or NOTIFICATION_FUNCTION_URL == "REPLACE_ME":
+        logging.warning("[NOTIF → FUNCTION] Notification function disabled (URL not set).")
+        return
 
     headers = {"Content-Type": "application/json"}
     if NOTIFICATION_FUNCTION_TOKEN:
@@ -50,10 +51,7 @@ def handle_event(event: dict, routing_key: str):
         return
 
     try:
-        # TODO: switch when serverless function is ready
-        from serverless import send_emails
-        send_emails(payload)
-        # trigger_notification_function(payload)
+        trigger_notification_function(payload)
     except Exception as e:
         logging.error(f"[SERVERLESS ERROR] {e}")
 
