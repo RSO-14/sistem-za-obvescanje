@@ -6,7 +6,7 @@ info:
     repository. This file aggregates endpoints from multiple microservices (users,
     arso-service, companies-sync, companies-filter)
 servers:
-- url: http://34.77.25.197
+- url: https://34.77.25.197
 tags:
 - name: users
   description: Service for user management, authentication, and user preferences.
